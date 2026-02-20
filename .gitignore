@@ -1,5 +1,2 @@
 .idea/
-bazel-testlogs/
-bazel-out/
-bazel-conductor/
-bazel-bin/
+bazel-*
