@@ -1,0 +1,9 @@
+load("@rules_java//java:defs.bzl", "java_binary")
+
+package(default_visibility = ["//visibility:public"])
+
+java_binary(
+    name = "Submitter",
+    srcs = glob(["src/main/java/com/github/asadyezdanschool/conductor/submitter/*.java"]),
+    main_class = "com.github.asadyezdanschool.conductor.submitter.Main",
+)
