@@ -1,0 +1,10 @@
+bazel_dep(
+    name = "rules_go",
+    version = "0.60.0",
+)
+
+go_sdk = use_extension("@rules_go//go:extensions.bzl", "go_sdk")
+
+go_sdk.download(version = "host")
+
+use_repo(go_sdk, "go_sdk")

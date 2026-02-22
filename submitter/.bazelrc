@@ -1,3 +1,4 @@
+.bazelrc
 # Use local JDK (whatever JAVA_HOME/which java points to)
 build --java_runtime_version=local_jdk
 build --tool_java_runtime_version=local_jdk
