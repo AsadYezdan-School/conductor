@@ -1,5 +1,7 @@
 load("@rules_go//go:def.bzl", "go_binary")
+load("@gazelle//:def.bzl", "gazelle")
 
+gazelle(name = "gazelle")
 
 go_binary(
     name = "Worker",
