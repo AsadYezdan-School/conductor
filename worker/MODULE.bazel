@@ -5,6 +5,11 @@ bazel_dep(
 
 go_sdk = use_extension("@rules_go//go:extensions.bzl", "go_sdk")
 
-go_sdk.download(version = "host")
-
+# Download the Go SDK used by Bazel
+go_sdk.download(
+    name = "go_sdk",
+    version = "1.26.0",
+)
 use_repo(go_sdk, "go_sdk")
+
+register_toolchains("@go_sdk//:all")

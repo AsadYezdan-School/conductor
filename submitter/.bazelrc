@@ -1,4 +1,8 @@
 .bazelrc
-# Use local JDK (whatever JAVA_HOME/which java points to)
-build --java_runtime_version=local_jdk
-build --tool_java_runtime_version=local_jdk
+# Pin the version to Java 25
+build --java_language_version=25
+build --tool_java_language_version=25
+
+# Might need this for CI
+# build --java_runtime_version=remotejdk_25
+# build --tool_java_runtime_version=remotejdk_25
