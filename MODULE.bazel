@@ -1,3 +1,4 @@
+# Go
 bazel_dep(
     name = "rules_go",
     version = "0.60.0",
@@ -13,3 +14,9 @@ go_sdk.download(
 use_repo(go_sdk, "go_sdk")
 
 register_toolchains("@go_sdk//:all")
+
+# Java
+bazel_dep(
+    name = "rules_java",
+    version = "9.0.0",
+)
