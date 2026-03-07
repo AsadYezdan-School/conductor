@@ -1,21 +1,39 @@
 # Go
-bazel_dep(
-    name = "rules_go",
-    version = "0.60.0",
-)
-go_sdk = use_extension("@rules_go//go:extensions.bzl", "go_sdk")
+bazel_dep(name = "rules_go", version = "0.60.0")
 
-# Download the Go SDK used by Bazel
+go_sdk = use_extension("@rules_go//go:extensions.bzl", "go_sdk")
 go_sdk.download(
     name = "go_sdk",
     version = "1.26.0",
 )
 use_repo(go_sdk, "go_sdk")
-
 register_toolchains("@go_sdk//:all")
 
 # Java
-bazel_dep(
-    name = "rules_java",
-    version = "9.0.0",
+bazel_dep(name = "rules_java", version = "9.0.3")
+
+# Core deps — must come before extensions that use them
+bazel_dep(name = "platforms", version = "1.0.0")
+bazel_dep(name = "rules_pkg", version = "1.0.1")
+bazel_dep(name = "rules_oci", version = "2.2.7")
+bazel_dep(name = "aspect_bazel_lib", version = "2.22.5")
+
+# OCI extension — must come AFTER rules_oci bazel_dep
+oci = use_extension("@rules_oci//oci:extensions.bzl", "oci")
+
+oci.pull(
+    name = "temurin25_jre",
+    image = "docker.io/library/eclipse-temurin",
+    tag = "25-jre-alpine",
+    digest = "sha256:0611ca158a2497b7ed6c2594a06fe88aa234401af0a43495f084ba1e986eba50",
+    platforms = ["linux/amd64"],
 )
+
+oci.pull(
+    name = "distroless_base",
+    image = "gcr.io/distroless/base",
+    digest = "sha256:1301f00c0a86316c008138772c4fabf2d904c27de31cf04fe60811d94b4dff21",
+    platforms = ["linux/amd64"],
+)
+
+use_repo(oci, "temurin25_jre", "distroless_base")
