@@ -7,6 +7,7 @@ go_sdk.download(
     version = "1.26.0",
 )
 use_repo(go_sdk, "go_sdk")
+
 register_toolchains("@go_sdk//:all")
 
 # Java
@@ -20,20 +21,17 @@ bazel_dep(name = "aspect_bazel_lib", version = "2.22.5")
 
 # OCI extension — must come AFTER rules_oci bazel_dep
 oci = use_extension("@rules_oci//oci:extensions.bzl", "oci")
-
 oci.pull(
     name = "temurin25_jre",
-    image = "docker.io/library/eclipse-temurin",
-    tag = "25-jre-alpine",
     digest = "sha256:0611ca158a2497b7ed6c2594a06fe88aa234401af0a43495f084ba1e986eba50",
+    image = "docker.io/library/eclipse-temurin",
     platforms = ["linux/amd64"],
+    tag = "25-jre-alpine",
 )
-
 oci.pull(
     name = "distroless_base",
-    image = "gcr.io/distroless/base",
     digest = "sha256:1301f00c0a86316c008138772c4fabf2d904c27de31cf04fe60811d94b4dff21",
+    image = "gcr.io/distroless/base",
     platforms = ["linux/amd64"],
 )
-
-use_repo(oci, "temurin25_jre", "distroless_base")
+use_repo(oci, "distroless_base", "distroless_base_linux_amd64", "temurin25_jre", "temurin25_jre_linux_amd64")
