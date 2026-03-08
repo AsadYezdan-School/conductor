@@ -27,5 +27,4 @@ oci_load(
     name = "worker_load",
     image = ":worker_image",
     repo_tags = ["worker:latest"],
-    loader = "@//tools:podman",
 )

@@ -7,7 +7,7 @@ import (
 
 func main() {
     for true {
-    	fmt.Println("hello world from Go 1.26.0 built in bazel")
+    	fmt.Println("hello world from Go 1.26.0 built in bazel from rebuild and moving bazel rc")
     	time.Sleep(1 * time.Second)
     }
 }
