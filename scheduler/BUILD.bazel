@@ -15,29 +15,28 @@ java_binary(
     runtime_deps = [":scheduler_lib"],
 )
 
-java_library(
-    name = "scheduler_test_lib",
-    testonly = True,
-    srcs = glob(["src/test/java/com/github/asadyezdanschool/conductor/scheduler/*Test.java"]),
-    deps = [
-        ":scheduler_lib",
-        "@maven//:org_junit_jupiter_junit_jupiter_api",
-    ],
-)
-
 java_test(
     name = "scheduler_test",
-    test_class = "org.junit.platform.console.ConsoleLauncher",
+    srcs = glob(["src/test/java/com/github/asadyezdanschool/conductor/scheduler/*Test.java"]),
+    main_class = "org.junit.platform.console.ConsoleLauncher",
     use_testrunner = False,
     args = [
         "--disable-banner",
         "--scan-classpath",
         "--include-classname=.*Test",
     ],
+    deps = [
+        ":scheduler_lib",
+        "@maven//:org_junit_jupiter_junit_jupiter_api",
+    ],
     runtime_deps = [
-        ":scheduler_test_lib",
         "@maven//:org_junit_platform_junit_platform_console_standalone",
     ],
+)
+
+test_suite(
+    name = "all_tests",
+    tests = [":scheduler_test"],
 )
 
 pkg_tar(

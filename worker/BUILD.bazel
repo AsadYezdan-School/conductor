@@ -1,10 +1,17 @@
-load("@rules_go//go:def.bzl", "go_binary", "go_test")
+load("@rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
 load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
 load("@rules_oci//oci:defs.bzl", "oci_image", "oci_load")
 
+go_library(
+    name = "worker_lib",
+    srcs = ["hello.go"],
+    importpath = "asadyezdanschool/conductor/worker",
+    visibility = ["//visibility:private"],
+)
+
 go_binary(
     name = "Worker",
-    srcs = ["hello.go"],
+    embed = [":worker_lib"],
     goarch = "amd64",
     goos = "linux",
     pure = "on",  # static binary, no CGO — required for distroless/base
@@ -12,7 +19,13 @@ go_binary(
 
 go_test(
     name = "worker_test",
-    srcs = ["hello.go", "hello_test.go"],
+    srcs = ["hello_test.go"],
+    embed = [":worker_lib"],
+)
+
+test_suite(
+    name = "all_tests",
+    tests = [":worker_test"],
 )
 
 pkg_tar(

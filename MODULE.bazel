@@ -15,6 +15,14 @@ bazel_dep(name = "rules_java", version = "9.0.3")
 
 bazel_dep(name = "rules_jvm_external", version = "6.8")
 
+# Java 25 JDK toolchain
+java_sdk = use_extension("@rules_java//java:extensions.bzl", "java_sdk_toolchain")
+java_sdk.remote_jdk(
+    name = "remotejdk_25",
+    version = "25",
+)
+use_repo(java_sdk, "remotejdk_25")
+
 # Core deps — must come before extensions that use them
 bazel_dep(name = "platforms", version = "1.0.0")
 bazel_dep(name = "rules_pkg", version = "1.0.1")
