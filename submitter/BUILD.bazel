@@ -15,27 +15,19 @@ java_binary(
     runtime_deps = [":submitter_lib"],
 )
 
-java_library(
-    name = "submitter_test_lib",
-    testonly = True,
-    srcs = glob(["src/test/java/com/github/asadyezdanschool/conductor/submitter/*Test.java"]),
-    deps = [
-        ":submitter_lib",
-        "@maven//:org_junit_jupiter_junit_jupiter_api",
-    ],
-)
-
 java_test(
     name = "submitter_test",
-    test_class = "org.junit.platform.console.ConsoleLauncher",
+    srcs = glob(["src/test/java/com/github/asadyezdanschool/conductor/submitter/*Test.java"]),
+    main_class = "org.junit.platform.console.ConsoleLauncher",
     use_testrunner = False,
     args = [
         "--disable-banner",
         "--scan-classpath",
         "--include-classname=.*Test",
     ],
-    runtime_deps = [
-        ":submitter_test_lib",
+    deps = [
+        ":submitter_lib",
+        "@maven//:org_junit_jupiter_junit_jupiter_api",
         "@maven//:org_junit_platform_junit_platform_console_standalone",
     ],
 )
