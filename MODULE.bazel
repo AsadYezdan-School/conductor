@@ -43,6 +43,7 @@ maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
 maven.install(
     artifacts = [
         "org.junit.jupiter:junit-jupiter-api:5.12.1",
+        "org.junit.jupiter:junit-jupiter:5.12.1",
         "org.junit.platform:junit-platform-console-standalone:1.12.1",
     ],
     repositories = [

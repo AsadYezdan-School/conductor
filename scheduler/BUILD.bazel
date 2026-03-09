@@ -18,17 +18,10 @@ java_binary(
 java_test(
     name = "scheduler_test",
     srcs = ["src/test/java/com/github/asadyezdanschool/conductor/scheduler/MainTest.java"],
-    main_class = "org.junit.platform.console.ConsoleLauncher",
-    use_testrunner = False,
-    args = [
-        "--disable-banner",
-        "--scan-classpath",
-        "--include-classname=.*Test",
-    ],
+    test_class = "com.github.asadyezdanschool.conductor.scheduler.MainTest",
     deps = [
         ":scheduler_lib",
-        "@maven//:org_junit_jupiter_junit_jupiter_api",
-        "@maven//:org_junit_platform_junit_platform_console_standalone",
+        "@maven//:org_junit_jupiter_junit_jupiter",
     ],
 )
 
