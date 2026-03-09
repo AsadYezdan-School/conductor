@@ -1,13 +1,42 @@
-load("@rules_java//java:defs.bzl", "java_binary")
+load("@rules_java//java:defs.bzl", "java_binary", "java_library", "java_test")
 load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
 load("@rules_oci//oci:defs.bzl", "oci_image", "oci_load")
 
 package(default_visibility = ["//visibility:public"])
 
+java_library(
+    name = "scheduler_lib",
+    srcs = glob(["src/main/java/com/github/asadyezdanschool/conductor/scheduler/*.java"]),
+)
+
 java_binary(
     name = "Scheduler",
-    srcs = glob(["src/main/java/com/github/asadyezdanschool/conductor/scheduler/*.java"]),
     main_class = "com.github.asadyezdanschool.conductor.scheduler.Main",
+    runtime_deps = [":scheduler_lib"],
+)
+
+java_test(
+    name = "scheduler_test",
+    srcs = glob(["src/test/java/com/github/asadyezdanschool/conductor/scheduler/*Test.java"]),
+    main_class = "org.junit.platform.console.ConsoleLauncher",
+    use_testrunner = False,
+    args = [
+        "--disable-banner",
+        "--scan-classpath",
+        "--include-classname=.*Test",
+    ],
+    deps = [
+        ":scheduler_lib",
+        "@maven//:org_junit_jupiter_junit_jupiter_api",
+    ],
+    runtime_deps = [
+        "@maven//:org_junit_platform_junit_platform_console_standalone",
+    ],
+)
+
+test_suite(
+    name = "all_tests",
+    tests = [":scheduler_test"],
 )
 
 pkg_tar(

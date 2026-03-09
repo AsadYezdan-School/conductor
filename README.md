@@ -23,7 +23,7 @@ By centralising automation, organisations gain operational transparency, reliabi
 ### Tech Stack
 
 - Java 25
-- Go 1.24.4
+- Go 1.26.0
 - gRPC
 - Kafka
 - PostGres
@@ -32,3 +32,16 @@ By centralising automation, organisations gain operational transparency, reliabi
 ### Deployment
 
 ### How To Access It
+
+
+### Testing
+
+Run all tests with Bazel:
+
+```bash
+bazel test //worker:worker_test //scheduler:scheduler_test //submitter:submitter_test
+```
+
+This validates:
+- Go 1.26.0 unit tests in `worker` via `go_test`.
+- Java 25 unit tests in `scheduler` and `submitter` via JUnit 5.

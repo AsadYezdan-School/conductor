@@ -1,0 +1,10 @@
+package(default_visibility = ["//visibility:public"])
+
+test_suite(
+    name = "all_tests",
+    tests = [
+        "//scheduler:all_tests",
+        "//submitter:all_tests",
+        "//worker:all_tests",
+    ],
+)
