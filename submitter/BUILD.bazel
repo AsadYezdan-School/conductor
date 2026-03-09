@@ -1,12 +1,43 @@
-load("@rules_java//java:defs.bzl", "java_binary")
+load("@rules_java//java:defs.bzl", "java_binary", "java_library", "java_test")
 load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
 load("@rules_oci//oci:defs.bzl", "oci_image", "oci_load")
+
 package(default_visibility = ["//visibility:public"])
+
+java_library(
+    name = "submitter_lib",
+    srcs = glob(["src/main/java/com/github/asadyezdanschool/conductor/submitter/*.java"]),
+)
 
 java_binary(
     name = "Submitter",
-    srcs = glob(["src/main/java/com/github/asadyezdanschool/conductor/submitter/*.java"]),
     main_class = "com.github.asadyezdanschool.conductor.submitter.Main",
+    runtime_deps = [":submitter_lib"],
+)
+
+java_library(
+    name = "submitter_test_lib",
+    testonly = True,
+    srcs = glob(["src/test/java/com/github/asadyezdanschool/conductor/submitter/*Test.java"]),
+    deps = [
+        ":submitter_lib",
+        "@maven//:org_junit_jupiter_junit_jupiter_api",
+    ],
+)
+
+java_test(
+    name = "submitter_test",
+    test_class = "org.junit.platform.console.ConsoleLauncher",
+    use_testrunner = False,
+    args = [
+        "--disable-banner",
+        "--scan-classpath",
+        "--include-classname=.*Test",
+    ],
+    runtime_deps = [
+        ":submitter_test_lib",
+        "@maven//:org_junit_platform_junit_platform_console_standalone",
+    ],
 )
 
 pkg_tar(

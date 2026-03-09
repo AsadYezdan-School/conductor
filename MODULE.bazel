@@ -13,6 +13,8 @@ register_toolchains("@go_sdk//:all")
 # Java
 bazel_dep(name = "rules_java", version = "9.0.3")
 
+bazel_dep(name = "rules_jvm_external", version = "6.8")
+
 # Core deps — must come before extensions that use them
 bazel_dep(name = "platforms", version = "1.0.0")
 bazel_dep(name = "rules_pkg", version = "1.0.1")
@@ -35,3 +37,16 @@ oci.pull(
     platforms = ["linux/amd64"],
 )
 use_repo(oci, "distroless_base", "distroless_base_linux_amd64", "temurin25_jre", "temurin25_jre_linux_amd64")
+
+# Maven dependencies for Java testing
+maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
+maven.install(
+    artifacts = [
+        "org.junit.jupiter:junit-jupiter-api:5.12.1",
+        "org.junit.platform:junit-platform-console-standalone:1.12.1",
+    ],
+    repositories = [
+        "https://repo1.maven.org/maven2",
+    ],
+)
+use_repo(maven, "maven")
