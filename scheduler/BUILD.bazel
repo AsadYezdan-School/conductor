@@ -17,7 +17,7 @@ java_binary(
 
 java_test(
     name = "scheduler_test",
-    srcs = glob(["src/test/java/com/github/asadyezdanschool/conductor/scheduler/*Test.java"]),
+    srcs = ["src/test/java/com/github/asadyezdanschool/conductor/scheduler/MainTest.java"],
     main_class = "org.junit.platform.console.ConsoleLauncher",
     use_testrunner = False,
     args = [
