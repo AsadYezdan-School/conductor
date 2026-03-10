@@ -44,5 +44,5 @@ oci_image(
 oci_load(
     name = "worker_load",
     image = ":worker_image",
-    repo_tags = ["worker:latest"],
+    repo_tags = ["conductor-worker:latest"],
 )

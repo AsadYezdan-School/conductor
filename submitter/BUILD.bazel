@@ -55,5 +55,5 @@ oci_image(
 oci_load(
     name = "submitter_load",
     image = ":submitter_image",
-    repo_tags = ["submitter:latest"],
+    repo_tags = ["conductor-submitter:latest"],
 )
