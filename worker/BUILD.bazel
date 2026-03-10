@@ -1,6 +1,6 @@
 load("@rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
 load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
-load("@rules_oci//oci:defs.bzl", "oci_image", "oci_load")
+load("@rules_oci//oci:defs.bzl", "oci_image", "oci_load","oci_push_rule")
 
 go_library(
     name = "worker_lib",
@@ -45,4 +45,11 @@ oci_load(
     name = "worker_load",
     image = ":worker_image",
     repo_tags = ["conductor-worker:latest"],
+)
+
+oci_push(
+    name = "publish_worker_image",
+    image = ":worker_image",
+    repository = "index.docker.io/redocktunetes/conductor-worker/worker",
+    remote_tags = ["latest"]
 )
