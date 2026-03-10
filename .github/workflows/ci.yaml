@@ -27,7 +27,7 @@ jobs:
         run: bazel test //...
 
       - name: Login To Docker
-        run: docker login -u redocktunetes --password-stdin <<< "$DOCKERREGISTRYTOKEN"
+        run: echo "$DOCKERREGISTRYTOKEN" | docker login -u redocktunetes --password-stdin
 
       - name: Publish All Images
         run: bazel run //:publish_images
