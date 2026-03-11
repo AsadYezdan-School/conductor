@@ -62,5 +62,4 @@ oci_push(
     name = "publish_image",
     image = ":scheduler_image",
     repository = "index.docker.io/redocktunetes/conductor-scheduler",
-    remote_tags = ["latest"]
 )
