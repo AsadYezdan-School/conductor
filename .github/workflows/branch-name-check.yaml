@@ -1,0 +1,16 @@
+name: PR Branch Check
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  check-branch-name:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check branch name
+        run: |
+          if [[ "${{ github.head_ref }}" != dev-* ]]; then
+            echo "PR branch must start with 'dev-', got: ${{ github.head_ref }}"
+            exit 1
+          fi

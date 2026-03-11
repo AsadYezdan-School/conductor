@@ -13,7 +13,8 @@ elif [[ "${BRANCH_NAME}" == dev-* ]]; then
     TAG="${BRANCH_NAME}-${SHORT_SHA}"
 else
     echo "No publish rule for branch '${BRANCH_NAME}', skipping."
-    exit 0
+    echo "Branch name must start with 'dev-'"
+    exit 1
 fi
 
 echo "Publishing images with tag: ${TAG}"
