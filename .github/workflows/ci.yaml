@@ -34,8 +34,3 @@ jobs:
 
       - name: Publish All Images
         run: bazel run //:publish_images
-
-
-
-
-
