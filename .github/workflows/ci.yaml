@@ -30,7 +30,7 @@ jobs:
         uses: docker/login-action@v4
         with:
           username: redocktunetes
-          password: ${{vars.DOCKERREGISTRYTOKEN}}
+          password: ${{secrets.DOCKERREGISTRYTOKEN}}
 
       - name: Publish All Images
         run: bazel run //:publish_images
