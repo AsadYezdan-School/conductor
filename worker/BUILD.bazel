@@ -51,5 +51,4 @@ oci_push(
     name = "publish_image",
     image = ":worker_image",
     repository = "index.docker.io/redocktunetes/conductor-worker",
-    remote_tags = ["latest"]
 )

@@ -62,5 +62,4 @@ oci_push(
     name = "publish_image",
     image = ":submitter_image",
     repository = "index.docker.io/redocktunetes/conductor-submitter",
-    remote_tags = ["latest"]
 )
