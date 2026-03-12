@@ -61,5 +61,5 @@ oci_load(
 oci_push(
     name = "publish_image",
     image = ":scheduler_image",
-    repository = "index.docker.io/redocktunetes/conductor-scheduler",
+    repository = "public.ecr.aws/a9s2p1s8/conductor/scheduler",
 )
