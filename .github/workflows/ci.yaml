@@ -47,3 +47,18 @@ jobs:
           BRANCH_NAME: ${{ github.ref_name }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: bazel run //:publish_images
+
+      - name : Setup AWS CDK credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with :
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name : Install AWS CDK Deps
+        run: 'sudo apt update -y &&
+              sudo apt install nodejs npm -y &&
+              sudo apt install -f aws-cdk -y'
+
+      - name : Deploy to AWS
+        run : 'cdk synth && cdk deploy'
