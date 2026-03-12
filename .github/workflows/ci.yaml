@@ -54,10 +54,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
+          cache-dependency-path: infra/aws-minimal/package.json
 
       - name: Install AWS CDK app dependencies
         working-directory: infra/aws-minimal
-        run: npm ci
+        run: npm install
 
       - name: Bootstrap AWS CDK
         working-directory: infra/aws-minimal
