@@ -10,7 +10,8 @@ if [[ "${BRANCH_NAME}" == release/* ]]; then
 elif [[ "${BRANCH_NAME}" == main ]]; then
     TAG="main-${SHORT_SHA}"
 elif [[ "${BRANCH_NAME}" == dev-* ]]; then
-    TAG="${BRANCH_NAME}-${SHORT_SHA}"
+#    TAG="${BRANCH_NAME}-${SHORT_SHA}"
+     TAG="master"
 else
     echo "No publish rule for branch '${BRANCH_NAME}', skipping."
     echo "Branch name must start with 'dev-'"

@@ -59,19 +59,19 @@ export class AwsMinimalStack extends cdk.Stack {
     const schedulerService = this.createAppRunnerService({
       id: 'Scheduler',
       serviceName: 'conductor-scheduler',
-      imageIdentifier: 'public.ecr.aws/YOUR_ALIAS/conductor-scheduler:latest',
+      imageIdentifier: 'public.ecr.aws/conductor/scheduler:latest',
     });
 
     const workerService = this.createAppRunnerService({
       id: 'Worker',
       serviceName: 'conductor-worker',
-      imageIdentifier: 'public.ecr.aws/YOUR_ALIAS/conductor-worker:latest',
+      imageIdentifier: 'public.ecr.aws/conductor/worker:latest',
     });
 
     const submitterService = this.createAppRunnerService({
       id: 'Submitter',
       serviceName: 'conductor-submitter',
-      imageIdentifier: 'public.ecr.aws/YOUR_ALIAS/conductor-submitter:latest',
+      imageIdentifier: 'public.ecr.aws/conductor/submitter:latest',
     });
 
     new cdk.CfnOutput(this, 'VpcId', {
