@@ -55,10 +55,14 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name : Install AWS CDK Deps
+      - name : Install Node
         run: 'sudo apt update -y &&
               sudo apt install nodejs npm -y &&
-              sudo apt install -f aws-cdk -y'
+              sudo npm i -g aws-cdk'
+
+      - name : Install AWS CDK
+        run: 'sudo apt update -y &&
+              sudo npm i -g aws-cdk'
 
       - name : Deploy to AWS
         run : 'cdk synth && cdk deploy'
