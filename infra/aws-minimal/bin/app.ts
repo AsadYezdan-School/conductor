@@ -7,6 +7,6 @@ const app = new cdk.App();
 new AwsMinimalStack(app, 'AwsMinimalStack', {
   env: {
     account: process.env.CDK_DEFAULT_ACCOUNT,
-    region: process.env.CDK_DEFAULT_REGION ?? 'eu-north-1',
+    region: process.env.CDK_DEFAULT_REGION ?? 'eu-west-1',
   },
 });
