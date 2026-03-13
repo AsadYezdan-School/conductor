@@ -35,9 +35,9 @@ export class AwsMinimalStack extends cdk.Stack {
     const database = new rds.DatabaseInstance(this, 'ConductorDatabase', {
       instanceIdentifier: 'conductor-database',
       engine: rds.DatabaseInstanceEngine.postgres({
-        version: rds.PostgresEngineVersion.VER_17_6,
+        version: rds.PostgresEngineVersion.of('17.6', '17'),
       }),
-      instanceType: ec2.InstanceType.of(ec2.InstanceClass.T4G, ec2.InstanceSize.MICRO),
+      instanceType: ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
       vpc,
       vpcSubnets: {
         subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
