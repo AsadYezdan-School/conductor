@@ -57,6 +57,10 @@ jobs:
           cache: 'npm'
           cache-dependency-path: infra/aws-minimal/package.json
 
+      - name: Bootstrap AWS CDK
+        working-directory: infra/aws-minimal
+        run: npx cdk bootstrap aws://$AWS_ACCOUNT_ID/eu-west-1
+
       - name: Install AWS CDK app dependencies
         working-directory: infra/aws-minimal
         run: npm install
