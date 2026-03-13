@@ -1,7 +1,7 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import * as apprunner from 'aws-cdk-lib/aws-apprunner';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as rds from 'aws-cdk-lib/aws-rds';
 
 export class AwsMinimalStack extends cdk.Stack {
@@ -56,38 +56,21 @@ export class AwsMinimalStack extends cdk.Stack {
       deletionProtection: false,
     });
 
-    const schedulerService = this.createAppRunnerService({
-      id: 'Scheduler',
-      serviceName: 'conductor-scheduler',
-      imageIdentifier: 'public.ecr.aws/conductor/scheduler:latest',
+    const cluster = new ecs.Cluster(this, 'ConductorCluster', {
+      vpc,
+      clusterName: 'conductor',
     });
 
-    const workerService = this.createAppRunnerService({
-      id: 'Worker',
-      serviceName: 'conductor-worker',
-      imageIdentifier: 'public.ecr.aws/conductor/worker:latest',
-    });
-
-    const submitterService = this.createAppRunnerService({
-      id: 'Submitter',
-      serviceName: 'conductor-submitter',
-      imageIdentifier: 'public.ecr.aws/conductor/submitter:latest',
-    });
+    this.createFargateService(cluster, vpc, 'Scheduler', 'conductor-scheduler', 'public.ecr.aws/conductor/scheduler:latest');
+    this.createFargateService(cluster, vpc, 'Worker', 'conductor-worker', 'public.ecr.aws/conductor/worker:latest');
+    this.createFargateService(cluster, vpc, 'Submitter', 'conductor-submitter', 'public.ecr.aws/conductor/submitter:latest');
 
     new cdk.CfnOutput(this, 'VpcId', {
       value: vpc.vpcId,
     });
 
-    new cdk.CfnOutput(this, 'SchedulerAppRunnerServiceUrl', {
-      value: schedulerService.attrServiceUrl,
-    });
-
-    new cdk.CfnOutput(this, 'WorkerAppRunnerServiceUrl', {
-      value: workerService.attrServiceUrl,
-    });
-
-    new cdk.CfnOutput(this, 'SubmitterAppRunnerServiceUrl', {
-      value: submitterService.attrServiceUrl,
+    new cdk.CfnOutput(this, 'EcsClusterName', {
+      value: cluster.clusterName,
     });
 
     new cdk.CfnOutput(this, 'RdsEndpointAddress', {
@@ -99,26 +82,39 @@ export class AwsMinimalStack extends cdk.Stack {
     });
   }
 
-  private createAppRunnerService(props: {
-    id: string;
-    serviceName: string;
-    imageIdentifier: string;
-  }): apprunner.CfnService {
-    return new apprunner.CfnService(this, `${props.id}Service`, {
-      serviceName: props.serviceName,
-      sourceConfiguration: {
-        autoDeploymentsEnabled: false,
-        imageRepository: {
-          imageIdentifier: props.imageIdentifier,
-          imageRepositoryType: 'ECR_PUBLIC',
-          imageConfiguration: {
-            port: '8080',
-          },
-        },
-      },
-      healthCheckConfiguration: {
-        protocol: 'TCP',
-      },
+  private createFargateService(
+    cluster: ecs.Cluster,
+    vpc: ec2.Vpc,
+    id: string,
+    serviceName: string,
+    imageUri: string,
+  ): ecs.FargateService {
+    const taskDef = new ecs.FargateTaskDefinition(this, `${id}TaskDef`, {
+      cpu: 256,
+      memoryLimitMiB: 512,
+    });
+
+    taskDef.addContainer(`${id}Container`, {
+      image: ecs.ContainerImage.fromRegistry(imageUri),
+      portMappings: [{ containerPort: 8080 }],
+      logging: ecs.LogDrivers.awsLogs({ streamPrefix: serviceName }),
+    });
+
+    const sg = new ec2.SecurityGroup(this, `${id}Sg`, {
+      vpc,
+      description: `Security group for ${serviceName}`,
+      allowAllOutbound: true,
+    });
+    sg.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(8080));
+
+    return new ecs.FargateService(this, `${id}Service`, {
+      cluster,
+      taskDefinition: taskDef,
+      serviceName,
+      desiredCount: 1,
+      assignPublicIp: true,
+      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
+      securityGroups: [sg],
     });
   }
 }
