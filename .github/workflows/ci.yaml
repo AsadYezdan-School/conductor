@@ -63,7 +63,7 @@ jobs:
 
       - name: Bootstrap AWS CDK
         working-directory: infra/aws-minimal
-        run: npx cdk bootstrap aws://$AWS_ACCOUNT_ID/eu-west-1
+        run: npx cdk bootstrap aws://$(aws sts get-caller-identity --query Account --output text)/eu-west-1
 
       - name: Deploy to AWS
         working-directory: infra/aws-minimal
