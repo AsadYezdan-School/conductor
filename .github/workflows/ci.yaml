@@ -65,6 +65,18 @@ jobs:
         working-directory: infra/aws-minimal
         run: npx cdk bootstrap aws://$(aws sts get-caller-identity --query Account --output text)/eu-west-1
 
+      - name: Delete stack if in failed rollback state
+        run: |
+          STATUS=$(aws cloudformation describe-stacks --stack-name AwsMinimalStack \
+            --query 'Stacks[0].StackStatus' --output text 2>/dev/null || echo "DOES_NOT_EXIST")
+          if [[ "$STATUS" == "ROLLBACK_COMPLETE" || "$STATUS" == "ROLLBACK_IN_PROGRESS" || "$STATUS" == "ROLLBACK_FAILED" ]]; then
+            echo "Stack is in $STATUS — deleting before redeploy"
+            aws cloudformation delete-stack --stack-name AwsMinimalStack
+            aws cloudformation wait stack-delete-complete --stack-name AwsMinimalStack
+          else
+            echo "Stack status: $STATUS — no cleanup needed"
+          fi
+
       - name: Deploy to AWS
         working-directory: infra/aws-minimal
         run: npx cdk synth && npx cdk deploy --require-approval never
