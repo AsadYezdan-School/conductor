@@ -90,4 +90,4 @@ jobs:
 
       - name: Deploy to AWS
         working-directory: infra/aws-minimal
-        run: npx cdk synth && npx cdk deploy --require-approval never --hotswap-fallback
+        run: npx cdk synth && npx cdk deploy --require-approval never
