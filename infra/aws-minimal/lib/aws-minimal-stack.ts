@@ -62,7 +62,10 @@ export class AwsMinimalStack extends cdk.Stack {
     });
 
     const imageTag = process.env.TAG;
-    console.log("Using image tag: " + imageTag);
+    if (imageTag === undefined) {
+      throw new Error('TAG environment variable is not set');
+      exit(1);
+    }
 
 
     this.createFargateService(cluster, vpc, 'Scheduler', 'conductor-scheduler', `public.ecr.aws/a9s2p1s8/conductor/scheduler:${imageTag}`);
@@ -119,6 +122,7 @@ export class AwsMinimalStack extends cdk.Stack {
       assignPublicIp: true,
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
       securityGroups: [sg],
+      circuitBreaker: { rollback: false },
     });
   }
 }
