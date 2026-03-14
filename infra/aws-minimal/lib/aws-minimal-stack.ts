@@ -65,9 +65,9 @@ export class AwsMinimalStack extends cdk.Stack {
     console.log("Using image tag: " + imageTag);
 
 
-    this.createFargateService(cluster, vpc, 'Scheduler', 'conductor-scheduler', `public.ecr.aws/conductor/scheduler:${imageTag}`);
-    this.createFargateService(cluster, vpc, 'Worker', 'conductor-worker', `public.ecr.aws/conductor/worker:${imageTag}`);
-    this.createFargateService(cluster, vpc, 'Submitter', 'conductor-submitter', `public.ecr.aws/conductor/submitter:${imageTag}`);
+    this.createFargateService(cluster, vpc, 'Scheduler', 'conductor-scheduler', `public.ecr.aws/a9s2p1s8/conductor/scheduler:${imageTag}`);
+    this.createFargateService(cluster, vpc, 'Worker', 'conductor-worker', `public.ecr.aws/a9s2p1s8/conductor/worker:${imageTag}`);
+    this.createFargateService(cluster, vpc, 'Submitter', 'conductor-submitter', `public.ecr.aws/a9s2p1s8/conductor/submitter:${imageTag}`);
 
     new cdk.CfnOutput(this, 'VpcId', {
       value: vpc.vpcId,
