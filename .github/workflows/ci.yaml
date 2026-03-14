@@ -26,14 +26,10 @@ jobs:
           repository-cache: true
 
       - name: Build Project
-        env:
-          BUILD_BUDDY_API_KEY: ${{ secrets.BUILD_BUDDY_API_KEY }}
-        run: bazel build --config=remote //...
+        run: bazel build --config=remote --remote_header=x-buildbuddy-api-key=${{ secrets.BUILD_BUDDY_API_KEY }} //...
 
       - name: Run Tests
-        env:
-          BUILD_BUDDY_API_KEY: ${{ secrets.BUILD_BUDDY_API_KEY }}
-        run: bazel test --config=remote //...
+        run: bazel test --config=remote --remote_header=x-buildbuddy-api-key=${{ secrets.BUILD_BUDDY_API_KEY }} //...
 
       - name: Setup AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -44,7 +40,7 @@ jobs:
 
       - name: Login To ECR Public
         run: |
-          aws ecr-public get-login-password --region us-east-1 | \
+          aws ecr-public get-login-password --region eu-west-1 | \
           docker login --username AWS --password-stdin public.ecr.aws
 
       - name: Publish All Images
