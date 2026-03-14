@@ -1,10 +1,8 @@
 .bazelrc
 
-# Local Build, pin to Java 25
-build --java_language_version=25
-build --tool_java_language_version=25
-
 # Remote config: JDK 25 + Buildbuddy cache (CI uses --config=remote)
+build:remote --java_language_version=25
+build:remote --tool_java_language_version=25
 build:remote --java_runtime_version=remotejdk_25
 build:remote --tool_java_runtime_version=remotejdk_25
 build:remote --bes_results_url=https://app.buildbuddy.io/invocation/

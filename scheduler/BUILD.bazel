@@ -55,7 +55,6 @@ oci_image(
 oci_load(
     name = "scheduler_load",
     image = ":scheduler_image",
-    repo_tags = ["conductor-scheduler:latest"],
 )
 
 oci_push(

@@ -43,8 +43,7 @@ oci_image(
 
 oci_load(
     name = "worker_load",
-    image = ":worker_image",
-    repo_tags = ["conductor-worker:latest"],
+    image = ":worker_image"
 )
 
 oci_push(
