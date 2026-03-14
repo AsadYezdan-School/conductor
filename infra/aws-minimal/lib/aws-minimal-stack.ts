@@ -61,8 +61,9 @@ export class AwsMinimalStack extends cdk.Stack {
       clusterName: 'conductor',
     });
 
-    const imageTag = process.env.TAG ?? 'latest';
+    const imageTag = process.env.TAG;
     console.log("Using image tag: " + imageTag);
+
 
     this.createFargateService(cluster, vpc, 'Scheduler', 'conductor-scheduler', `public.ecr.aws/conductor/scheduler:${imageTag}`);
     this.createFargateService(cluster, vpc, 'Worker', 'conductor-worker', `public.ecr.aws/conductor/worker:${imageTag}`);
