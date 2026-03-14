@@ -7,6 +7,10 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -65,16 +69,22 @@ jobs:
         working-directory: infra/aws-minimal
         run: npx cdk bootstrap aws://$(aws sts get-caller-identity --query Account --output text)/eu-west-1
 
-      - name: Delete stack if in failed rollback state
+      - name: Wait for stack to reach a stable state
         run: |
-          STATUS=$(aws cloudformation describe-stacks --stack-name AwsMinimalStack \
-            --query 'Stacks[0].StackStatus' --output text 2>/dev/null || echo "DOES_NOT_EXIST")
-          if [[ "$STATUS" == "ROLLBACK_COMPLETE" || "$STATUS" == "ROLLBACK_IN_PROGRESS" || "$STATUS" == "ROLLBACK_FAILED" ]]; then
-            echo "Stack is in $STATUS — deleting before redeploy"
+          while true; do
+            STATUS=$(aws cloudformation describe-stacks --stack-name AwsMinimalStack \
+              --query 'Stacks[0].StackStatus' --output text 2>/dev/null || echo "DOES_NOT_EXIST")
+            if [[ "$STATUS" != *"_IN_PROGRESS" ]]; then
+              break
+            fi
+            echo "Stack is in $STATUS — waiting 15s..."
+            sleep 15
+          done
+          echo "Stack status: $STATUS"
+          if [[ "$STATUS" == "ROLLBACK_COMPLETE" || "$STATUS" == "ROLLBACK_FAILED" ]]; then
+            echo "Deleting failed stack before redeploy..."
             aws cloudformation delete-stack --stack-name AwsMinimalStack
             aws cloudformation wait stack-delete-complete --stack-name AwsMinimalStack
-          else
-            echo "Stack status: $STATUS — no cleanup needed"
           fi
 
       - name: Deploy to AWS
