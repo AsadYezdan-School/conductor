@@ -64,7 +64,6 @@ export class AwsMinimalStack extends cdk.Stack {
     const imageTag = process.env.TAG;
     if (imageTag === undefined) {
       throw new Error('TAG environment variable is not set');
-      exit(1);
     }
 
 
