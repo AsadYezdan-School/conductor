@@ -61,9 +61,11 @@ export class AwsMinimalStack extends cdk.Stack {
       clusterName: 'conductor',
     });
 
-    this.createFargateService(cluster, vpc, 'Scheduler', 'conductor-scheduler', 'public.ecr.aws/conductor/scheduler:latest');
-    this.createFargateService(cluster, vpc, 'Worker', 'conductor-worker', 'public.ecr.aws/conductor/worker:latest');
-    this.createFargateService(cluster, vpc, 'Submitter', 'conductor-submitter', 'public.ecr.aws/conductor/submitter:latest');
+    const imageTag = process.env.IMAGE_TAG ?? 'latest';
+
+    this.createFargateService(cluster, vpc, 'Scheduler', 'conductor-scheduler', `public.ecr.aws/conductor/scheduler:${imageTag}`);
+    this.createFargateService(cluster, vpc, 'Worker', 'conductor-worker', `public.ecr.aws/conductor/worker:${imageTag}`);
+    this.createFargateService(cluster, vpc, 'Submitter', 'conductor-submitter', `public.ecr.aws/conductor/submitter:${imageTag}`);
 
     new cdk.CfnOutput(this, 'VpcId', {
       value: vpc.vpcId,
