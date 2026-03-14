@@ -2,7 +2,7 @@ package com.github.asadyezdanschool.conductor.scheduler;
 
 public class Main {
     static String greeting() {
-        return "Hello World from Java 25 in the scheduler built with Bazel";
+        return "Hello World from Java 25 in the scheduler built with Bazel, we are trying to deploy with AWS";
     }
 
     public static void main(String[] args) throws InterruptedException {

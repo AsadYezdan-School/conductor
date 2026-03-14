@@ -44,11 +44,11 @@ oci_image(
 oci_load(
     name = "worker_load",
     image = ":worker_image",
-    repo_tags = ["conductor-worker:latest"],
+    repo_tags = ["conductor/worker:dummy"],
 )
 
 oci_push(
     name = "publish_image",
     image = ":worker_image",
-    repository = "index.docker.io/redocktunetes/conductor-worker",
+    repository = "public.ecr.aws/a9s2p1s8/conductor/worker",
 )

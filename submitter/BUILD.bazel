@@ -55,11 +55,11 @@ oci_image(
 oci_load(
     name = "submitter_load",
     image = ":submitter_image",
-    repo_tags = ["conductor-submitter:latest"],
+    repo_tags = ["conductor/submitter:dummy"],
 )
 
 oci_push(
     name = "publish_image",
     image = ":submitter_image",
-    repository = "index.docker.io/redocktunetes/conductor-submitter",
+    repository = "public.ecr.aws/a9s2p1s8/conductor/submitter",
 )

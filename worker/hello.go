@@ -6,7 +6,7 @@ import (
 )
 
 func greeting() string {
-    return "hello world from Go 1.26.0 built in bazel from rebuild and moving bazel rc"
+    return "hello world from Go 1.26.0 built in bazel from rebuild and moving bazel rc we are trying to deploy with AWS"
 }
 
 func main() {

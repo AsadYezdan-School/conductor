@@ -7,6 +7,10 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -22,20 +26,22 @@ jobs:
           repository-cache: true
 
       - name: Build Project
-        run: bazel build //...
+        run: bazel build --config=remote --remote_header=x-buildbuddy-api-key=${{ secrets.BUILD_BUDDY_API_KEY }} //...
 
       - name: Run Tests
-        run: bazel test //...
+        run: bazel test --config=remote --remote_header=x-buildbuddy-api-key=${{ secrets.BUILD_BUDDY_API_KEY }} //...
 
-      - name: Login To Docker
-        if: |
-          (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-          (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/dev-')) ||
-          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/release-'))
-        uses: docker/login-action@v4
+      - name: Setup AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
         with:
-          username: redocktunetes
-          password: ${{secrets.DOCKERREGISTRYTOKEN}}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-1
+
+      - name: Login To ECR Public
+        run: |
+          aws ecr-public get-login-password --region us-east-1 | \
+          docker login --username AWS --password-stdin public.ecr.aws
 
       - name: Publish All Images
         if: |
@@ -43,7 +49,45 @@ jobs:
           (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/dev-')) ||
           (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/release-'))
         env:
+          BUILD_BUDDY_API_KEY: ${{ secrets.BUILD_BUDDY_API_KEY }}
           COMMIT_SHA: ${{ github.sha }}
           BRANCH_NAME: ${{ github.ref_name }}
           RELEASE_TAG: ${{ github.ref_name }}
-        run: bazel run //:publish_images
+        run: bazel run --config=remote //:publish_images
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: infra/aws-minimal/package-lock.json
+
+      - name: Install AWS CDK app dependencies
+        working-directory: infra/aws-minimal
+        run: npm install
+
+      - name: Bootstrap AWS CDK
+        working-directory: infra/aws-minimal
+        run: npx cdk bootstrap aws://$(aws sts get-caller-identity --query Account --output text)/eu-west-1
+
+      - name: Wait for stack to reach a stable state
+        run: |
+          while true; do
+            STATUS=$(aws cloudformation describe-stacks --stack-name AwsMinimalStack \
+              --query 'Stacks[0].StackStatus' --output text 2>/dev/null || echo "DOES_NOT_EXIST")
+            if [[ "$STATUS" != *"_IN_PROGRESS" ]]; then
+              break
+            fi
+            echo "Stack is in $STATUS — waiting 15s..."
+            sleep 15
+          done
+          echo "Stack status: $STATUS"
+          if [[ "$STATUS" == "ROLLBACK_COMPLETE" || "$STATUS" == "ROLLBACK_FAILED" ]]; then
+            echo "Deleting failed stack before redeploy..."
+            aws cloudformation delete-stack --stack-name AwsMinimalStack
+            aws cloudformation wait stack-delete-complete --stack-name AwsMinimalStack
+          fi
+
+      - name: Deploy to AWS
+        working-directory: infra/aws-minimal
+        run: npx cdk synth && npx cdk deploy --require-approval never

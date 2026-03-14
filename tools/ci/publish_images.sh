@@ -19,6 +19,11 @@ fi
 
 echo "Publishing images with tag: ${TAG}"
 
+# Export tag for subsequent CI steps (no-op outside GitHub Actions)
+if [[ -n "${GITHUB_ENV:-}" ]]; then
+  echo "TAG=${TAG}" >> "$GITHUB_ENV"
+fi
+
 bazel run //scheduler:publish_image -- --tag "$TAG"
 bazel run //submitter:publish_image -- --tag "$TAG"
 bazel run //worker:publish_image -- --tag "$TAG"
