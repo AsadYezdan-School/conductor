@@ -138,7 +138,7 @@ export class AwsMinimalStack extends cdk.Stack {
       assignPublicIp: true,
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
       securityGroups: [sg],
-      circuitBreaker: { rollback: false },
+      circuitBreaker: { rollback: true },
     });
     return { service, sg };
   }
