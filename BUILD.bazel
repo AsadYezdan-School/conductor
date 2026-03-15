@@ -1,5 +1,7 @@
-package(default_visibility = ["//visibility:public"])
+load("@gazelle//:def.bzl", "gazelle")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+
+package(default_visibility = ["//visibility:public"])
 
 test_suite(
     name = "all_tests",
@@ -15,3 +17,6 @@ sh_binary(
     srcs = ["tools/ci/publish_images.sh"],
 )
 
+# gazelle:prefix asadyezdanschool/conductor
+# gazelle:exclude infra
+gazelle(name = "gazelle")
