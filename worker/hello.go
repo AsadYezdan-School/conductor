@@ -35,10 +35,6 @@ func main() {
 		}
 		for _, msg := range out.Messages {
 			fmt.Println(*msg.Body)
-			client.DeleteMessage(context.Background(), &sqs.DeleteMessageInput{ //nolint
-				QueueUrl:      &queueUrl,
-				ReceiptHandle: msg.ReceiptHandle,
-			})
 		}
 	}
 }
