@@ -1,14 +1,26 @@
 package com.github.asadyezdanschool.conductor.scheduler;
 
-public class Main {
-    static String greeting() {
-        return "Hello World from Java 25 in the scheduler built with Bazel, we are trying to deploy with AWS";
-    }
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
+public class Main {
     public static void main(String[] args) throws InterruptedException {
-        while (true) {
-            System.out.println(greeting());
-            Thread.sleep(1000);
-        }
+       String queueUrl = System.getenv("SQS_QUEUE_URL");
+       if (queueUrl == null) {
+           throw new IllegalStateException("SQS_QUEUE_URL not set");
+       }
+
+       try (SqsClient sqs = SqsClient.create()) {
+           int i = 0;
+           while (true) {
+               String body = "hello sqs from scheduler " + i++;
+               sqs.sendMessage(SendMessageRequest.builder()
+                       .queueUrl(queueUrl)
+                       .messageBody(body)
+                       .build());
+               System.out.println("sent: " + body);
+               Thread.sleep(1000);
+           }
+       }
     }
 }
