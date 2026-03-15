@@ -3,7 +3,7 @@ import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as rds from 'aws-cdk-lib/aws-rds';
-import * as msk from 'aws-cdk-lib/aws-msk';
+import * as msk from '@aws-cdk/aws-msk-alpha';
 
 export class AwsMinimalStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -126,7 +126,7 @@ export class AwsMinimalStack extends cdk.Stack {
     id: string,
     serviceName: string,
     imageUri: string,
-  ): ecs.FargateService {
+  ): { service: ecs.FargateService; sg: ec2.SecurityGroup } {
     const taskDef = new ecs.FargateTaskDefinition(this, `${id}TaskDef`, {
       cpu: 256,
       memoryLimitMiB: 512,
@@ -145,7 +145,7 @@ export class AwsMinimalStack extends cdk.Stack {
     });
     sg.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(8080));
 
-    return{new ecs.FargateService(this, `${id}Service`, {
+    const service = new ecs.FargateService(this, `${id}Service`, {
       cluster,
       taskDefinition: taskDef,
       serviceName,
@@ -154,6 +154,7 @@ export class AwsMinimalStack extends cdk.Stack {
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
       securityGroups: [sg],
       circuitBreaker: { rollback: false },
-    }), sg};
+    });
+    return { service, sg };
   }
 }
