@@ -68,8 +68,10 @@ export class AwsMinimalStack extends cdk.Stack {
     }
 
 
-    const { service: schedulerService } = this.createFargateService(cluster, vpc, 'Scheduler', 'conductor-scheduler', `public.ecr.aws/a9s2p1s8/conductor/scheduler:${imageTag}`);
-    const { service: workerService } = this.createFargateService(cluster, vpc, 'Worker', 'conductor-worker', `public.ecr.aws/a9s2p1s8/conductor/worker:${imageTag}`);
+    const sqsQueueUrl = 'https://sqs.eu-west-1.amazonaws.com/378849626815/conductor-jobs';
+
+    const { service: schedulerService } = this.createFargateService(cluster, vpc, 'Scheduler', 'conductor-scheduler', `public.ecr.aws/a9s2p1s8/conductor/scheduler:${imageTag}`, { SQS_QUEUE_URL: sqsQueueUrl });
+    const { service: workerService } = this.createFargateService(cluster, vpc, 'Worker', 'conductor-worker', `public.ecr.aws/a9s2p1s8/conductor/worker:${imageTag}`, { SQS_QUEUE_URL: sqsQueueUrl });
     this.createFargateService(cluster, vpc, 'Submitter', 'conductor-submitter', `public.ecr.aws/a9s2p1s8/conductor/submitter:${imageTag}`);
 
     const jobsQueue = new sqs.Queue(this, 'JobsQueue', {
@@ -111,6 +113,7 @@ export class AwsMinimalStack extends cdk.Stack {
     id: string,
     serviceName: string,
     imageUri: string,
+    environment: Record<string, string> = {},
   ): { service: ecs.FargateService; sg: ec2.SecurityGroup } {
     const taskDef = new ecs.FargateTaskDefinition(this, `${id}TaskDef`, {
       cpu: 256,
@@ -121,6 +124,7 @@ export class AwsMinimalStack extends cdk.Stack {
       image: ecs.ContainerImage.fromRegistry(imageUri),
       portMappings: [{ containerPort: 8080 }],
       logging: ecs.LogDrivers.awsLogs({ streamPrefix: serviceName }),
+      environment,
     });
 
     const sg = new ec2.SecurityGroup(this, `${id}Sg`, {
