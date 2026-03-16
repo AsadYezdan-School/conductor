@@ -1,0 +1,35 @@
+name: Stop ECS Services
+
+on:
+  workflow_dispatch:
+
+jobs:
+  stop-ecs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-1
+
+      - name: Stop ECS Services
+        run: |
+          for SERVICE in conductor-scheduler conductor-worker conductor-submitter; do
+            echo "Stopping $SERVICE..."
+            aws ecs update-service \
+              --cluster conductor \
+              --service "$SERVICE" \
+              --desired-count 0
+          done
+
+      - name: Wait for services to drain
+        run: |
+          for SERVICE in conductor-scheduler conductor-worker conductor-submitter; do
+            echo "Waiting for $SERVICE to stabilize..."
+            aws ecs wait services-stable \
+              --cluster conductor \
+              --services "$SERVICE"
+          done
+          echo "All services stopped."
