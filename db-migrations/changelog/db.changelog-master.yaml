@@ -1,4 +1,7 @@
 databaseChangeLog:
-  - includeAll:
-      path: ./
-      relativeToChangelogFile: false
+  - include:
+      file: v001_initial_schema.sql
+      relativeToChangelogFile: true
+  - include:
+      file: v001_tag.yaml
+      relativeToChangelogFile: true
