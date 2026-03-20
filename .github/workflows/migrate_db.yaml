@@ -88,7 +88,13 @@ jobs:
             --output json)
 
           get_output() {
-            echo "$OUTPUTS" | jq -r --arg key "$1" '.[] | select(.OutputKey == $key) | .OutputValue'
+            local value
+            value=$(echo "$OUTPUTS" | jq -r --arg key "$1" '.[] | select(.OutputKey == $key) | .OutputValue')
+            if [[ -z "$value" || "$value" == "null" ]]; then
+              echo "Error: CloudFormation output '$1' not found. Redeploy the CDK stack before running migrations." >&2
+              exit 1
+            fi
+            echo "$value"
           }
 
           echo "task_def_arn=$(get_output MigrationTaskDefArn)" >> "$GITHUB_OUTPUT"

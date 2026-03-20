@@ -61,6 +61,7 @@ maven.install(
     artifacts = [
         "org.junit.jupiter:junit-jupiter-api:5.12.1",
         "org.junit.platform:junit-platform-console-standalone:1.12.1",
+        "org.postgresql:postgresql:42.7.3",
         "software.amazon.awssdk:sqs:2.31.28",
         "software.amazon.awssdk:url-connection-client:2.31.28",
     ],
