@@ -158,7 +158,7 @@ export class AwsMinimalStack extends cdk.Stack {
     const bastion = new ec2.Instance(this, 'Bastion', {
       vpc,
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
-      instanceType: ec2.InstanceType.of(ec2.InstanceClass.T2, ec2.InstanceSize.MICRO),
+      instanceType: ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
       machineImage: ec2.MachineImage.latestAmazonLinux2023(),
       securityGroup: bastionSg,
       keyPair: bastionKey,
