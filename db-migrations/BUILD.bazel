@@ -1,33 +1,39 @@
 load("@rules_oci//oci:defs.bzl", "oci_image", "oci_load", "oci_push")
-load("@rules_pkg//pkg:mappings.bzl", "pkg_files", "strip_prefix")
-load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
 
 package(default_visibility = ["//visibility:public"])
 
-pkg_files(
-    name = "changelog_files",
+genrule(
+    name = "migrations_tar",
     srcs = glob(["changelog/**"]),
-    prefix = "/liquibase",
-    strip_prefix = strip_prefix.from_pkg(),
+    outs = ["migrations.tar"],
+    cmd = """
+        mkdir -p $(RULEDIR)/staging/liquibase/changelog && \
+        for f in $(SRCS); do cp $$f $(RULEDIR)/staging/liquibase/changelog/; done && \
+        tar -cf $@ -C $(RULEDIR)/staging . && \
+        rm -rf $(RULEDIR)/staging
+    """,
 )
 
-pkg_tar(
-    name = "migrations_layer",
-    srcs = [":changelog_files"],
-)
-
-pkg_tar(
-      name = "driver_layer",
-      srcs = ["@maven//:org_postgresql_postgresql"],
-      package_dir = "/liquibase/lib",
+genrule(
+    name = "driver_tar",
+    srcs = ["@maven//:org_postgresql_postgresql"],
+    outs = ["driver.tar"],
+    cmd = """
+        mkdir -p $(RULEDIR)/driver_staging/liquibase/lib && \
+        cp $(SRCS) $(RULEDIR)/driver_staging/liquibase/lib/postgresql.jar && \
+        tar -cf $@ -C $(RULEDIR)/driver_staging . && \
+        rm -rf $(RULEDIR)/driver_staging
+    """,
 )
 
 oci_image(
     name = "migrations_image",
     base = "@liquibase",
     cmd = ["update"],
-    tars = [":migrations_layer",
-            ":driver_layer"],
+    tars = [
+        ":migrations_tar",
+        ":driver_tar",
+    ],
 )
 
 oci_load(
