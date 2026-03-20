@@ -126,7 +126,6 @@ export class AwsMinimalStack extends cdk.Stack {
       image: ecs.ContainerImage.fromRegistry('public.ecr.aws/a9s2p1s8/conductor/liquibase-migrations:latest'),
       environment: {
         LIQUIBASE_COMMAND_URL: `jdbc:postgresql://${database.dbInstanceEndpointAddress}:5432/conductor`,
-        LIQUIBASE_SEARCH_PATH: '/liquibase',
         LIQUIBASE_COMMAND_CHANGELOG_FILE: 'db.changelog-master.yaml',
       },
       secrets: {
