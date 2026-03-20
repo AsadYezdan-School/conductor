@@ -56,6 +56,10 @@ jobs:
         run: bazel run --config=remote //:publish_images
 
       - name: Setup Node
+        if: |
+          (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/dev-')) ||
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/release-'))
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -63,14 +67,26 @@ jobs:
           cache-dependency-path: infra/aws-minimal/package-lock.json
 
       - name: Install AWS CDK app dependencies
+        if: |
+          (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/dev-')) ||
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/release-'))
         working-directory: infra/aws-minimal
         run: npm install
 
       - name: Bootstrap AWS CDK
+        if: |
+          (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/dev-')) ||
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/release-'))
         working-directory: infra/aws-minimal
         run: npx cdk bootstrap aws://$(aws sts get-caller-identity --query Account --output text)/eu-west-1
 
       - name: Wait for stack to reach a stable state
+        if: |
+          (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/dev-')) ||
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/release-'))
         run: |
           while true; do
             STATUS=$(aws cloudformation describe-stacks --stack-name AwsMinimalStack \
@@ -89,5 +105,9 @@ jobs:
           fi
 
       - name: Deploy to AWS
+        if: |
+          (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/dev-')) ||
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/release-'))
         working-directory: infra/aws-minimal
         run: npx cdk synth && npx cdk deploy --require-approval never

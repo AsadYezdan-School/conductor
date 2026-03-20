@@ -30,7 +30,11 @@ By centralising automation, organisations gain operational transparency, reliabi
 - Bazel 9.0.0
 
 ### Deployment
-Conductor is deployed on AWS using one RDS PostGres instance and 3 fargate tasks.
+Conductor is deployed on AWS using one RDS PostGres instance and 3 fargate tasks. Messaging is handled over AWS SQS
 
+### Database Migrations
+Handled by liquibase, and run on-demand by a github action workflow. To make a scheam change, you define your change as a .sql file under db-migrations/changelog,
+have your changes merged. Then you can trigger the workflow to run the migration against the RDS instance. This is a bit of a manual process, but it ensures that I have control over when schema changes are applied.
+Note that I dont think we tag schema version afaik, so rollback isnt really a thing, you just have to roll forward with a change that will undo the previous one. (I need a better solution than that lowk imma lose marks)
 ### How To Access It
 
