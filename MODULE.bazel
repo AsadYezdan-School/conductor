@@ -46,7 +46,14 @@ oci.pull(
     image = "gcr.io/distroless/base",
     platforms = ["linux/amd64"],
 )
-use_repo(oci, "distroless_base", "distroless_base_linux_amd64", "temurin25_jre", "temurin25_jre_linux_amd64")
+oci.pull(
+    name = "liquibase",
+    digest = "sha256:f1dbd6a536ea2898909a6449bbc8d2c54aa6057c4eb81dfbaec2b7a04c08236e",
+    image = "docker.io/liquibase/liquibase",
+    platforms = ["linux/amd64"],
+    tag = "5.0.2",
+)
+use_repo(oci, "distroless_base", "distroless_base_linux_amd64", "liquibase", "liquibase_linux_amd64", "temurin25_jre", "temurin25_jre_linux_amd64")
 
 # Maven dependencies for Java testing
 maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")

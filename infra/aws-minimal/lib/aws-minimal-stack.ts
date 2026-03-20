@@ -57,6 +57,15 @@ export class AwsMinimalStack extends cdk.Stack {
       deletionProtection: false,
     });
 
+    // --- Migrations infrastructure ---
+    const migrationSg = new ec2.SecurityGroup(this, 'MigrationSg', {
+      vpc,
+      description: 'Security group for Liquibase migration task',
+      allowAllOutbound: true,
+    });
+
+    dbSg.addIngressRule(migrationSg, ec2.Port.tcp(5432), 'Allow migration task');
+
     const cluster = new ecs.Cluster(this, 'ConductorCluster', {
       vpc,
       clusterName: 'conductor',
@@ -105,6 +114,31 @@ export class AwsMinimalStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'RdsInstanceIdentifier', {
       value: database.instanceIdentifier,
     });
+
+    // Migration task definition (one-off, no ECS Service)
+    const migrationTaskDef = new ecs.FargateTaskDefinition(this, 'MigrationTaskDef', {
+      cpu: 256,
+      memoryLimitMiB: 512,
+    });
+    database.secret!.grantRead(migrationTaskDef.taskRole);
+
+    migrationTaskDef.addContainer('MigrationContainer', {
+      image: ecs.ContainerImage.fromRegistry('public.ecr.aws/a9s2p1s8/conductor/liquibase-migrations:latest'),
+      environment: {
+        LIQUIBASE_COMMAND_URL: `jdbc:postgresql://${database.dbInstanceEndpointAddress}:5432/conductor`,
+        LIQUIBASE_COMMAND_CHANGELOG_FILE: 'changelog/db.changelog-master.yaml',
+      },
+      secrets: {
+        LIQUIBASE_COMMAND_USERNAME: ecs.Secret.fromSecretsManager(database.secret!, 'username'),
+        LIQUIBASE_COMMAND_PASSWORD: ecs.Secret.fromSecretsManager(database.secret!, 'password'),
+      },
+      logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'conductor-migrations' }),
+      essential: true,
+    });
+
+    new cdk.CfnOutput(this, 'MigrationTaskDefArn',  { value: migrationTaskDef.taskDefinitionArn });
+    new cdk.CfnOutput(this, 'MigrationSgId',        { value: migrationSg.securityGroupId });
+    new cdk.CfnOutput(this, 'PublicSubnetId',        { value: vpc.publicSubnets[0].subnetId });
   }
 
   private createFargateService(
