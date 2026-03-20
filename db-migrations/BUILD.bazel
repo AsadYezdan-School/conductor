@@ -9,12 +9,7 @@ genrule(
     cmd = """
         mkdir -p $(RULEDIR)/staging/liquibase/changelog && \
         for f in $(SRCS); do \
-            fname=$$(basename $$f); \
-            if [ "$$fname" = "db.changelog-master.yaml" ]; then \
-                cp $$f $(RULEDIR)/staging/liquibase/$$fname; \
-            else \
-                cp $$f $(RULEDIR)/staging/liquibase/changelog/$$fname; \
-            fi; \
+            cp $$f $(RULEDIR)/staging/liquibase/changelog/$$(basename $$f); \
         done && \
         tar -cf $@ -C $(RULEDIR)/staging . && \
         rm -rf $(RULEDIR)/staging

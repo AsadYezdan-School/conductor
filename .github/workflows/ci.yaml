@@ -111,3 +111,117 @@ jobs:
           (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/release-'))
         working-directory: infra/aws-minimal
         run: npx cdk synth && npx cdk deploy --require-approval never
+
+      - name: Get stack outputs for migration
+        if: |
+          (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/dev-')) ||
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/release-'))
+        id: cfn
+        run: |
+          OUTPUTS=$(aws cloudformation describe-stacks \
+            --stack-name AwsMinimalStack \
+            --query 'Stacks[0].Outputs' \
+            --output json)
+
+          get_output() {
+            echo "$OUTPUTS" | jq -r --arg key "$1" '.[] | select(.OutputKey == $key) | .OutputValue'
+          }
+
+          echo "task_def_arn=$(get_output MigrationTaskDefArn)" >> "$GITHUB_OUTPUT"
+          echo "migration_sg=$(get_output MigrationSgId)"       >> "$GITHUB_OUTPUT"
+          echo "subnet_id=$(get_output PublicSubnetId)"         >> "$GITHUB_OUTPUT"
+
+      - name: Register migration task definition with new image
+        if: |
+          (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/dev-')) ||
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/release-'))
+        id: register_task
+        run: |
+          IMAGE="public.ecr.aws/a9s2p1s8/conductor/liquibase-migrations:${TAG}"
+          echo "Running migration with image: ${IMAGE}"
+
+          TASK_DEF_JSON=$(aws ecs describe-task-definition \
+            --task-definition "${{ steps.cfn.outputs.task_def_arn }}" \
+            --query 'taskDefinition' \
+            --output json)
+
+          NEW_TASK_DEF=$(echo "$TASK_DEF_JSON" | jq \
+            --arg img "$IMAGE" \
+            'del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
+                 .placementConstraints, .compatibilities, .registeredAt, .registeredBy)
+             | .containerDefinitions[0].image = $img')
+
+          NEW_ARN=$(aws ecs register-task-definition \
+            --cli-input-json "$NEW_TASK_DEF" \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+
+          echo "task_def_arn=${NEW_ARN}" >> "$GITHUB_OUTPUT"
+          echo "Registered task definition: ${NEW_ARN}"
+
+      - name: Run DB migration
+        if: |
+          (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/dev-')) ||
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/release-'))
+        id: run_task
+        run: |
+          TASK_ARN=$(aws ecs run-task \
+            --cluster conductor \
+            --task-definition "${{ steps.register_task.outputs.task_def_arn }}" \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={
+              subnets=[${{ steps.cfn.outputs.subnet_id }}],
+              securityGroups=[${{ steps.cfn.outputs.migration_sg }}],
+              assignPublicIp=ENABLED
+            }" \
+            --query 'tasks[0].taskArn' \
+            --output text)
+
+          echo "task_arn=${TASK_ARN}" >> "$GITHUB_OUTPUT"
+          echo "Started migration task: ${TASK_ARN}"
+
+      - name: Wait for migration to complete
+        if: |
+          (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/dev-')) ||
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/release-'))
+        run: |
+          TASK_ARN="${{ steps.run_task.outputs.task_arn }}"
+          echo "Waiting for migration task ${TASK_ARN} to stop..."
+
+          while true; do
+            STATUS=$(aws ecs describe-tasks \
+              --cluster conductor \
+              --tasks "$TASK_ARN" \
+              --query 'tasks[0].lastStatus' \
+              --output text)
+            echo "Task status: $STATUS"
+            if [ "$STATUS" = "STOPPED" ]; then
+              break
+            fi
+            sleep 10
+          done
+
+          EXIT_CODE=$(aws ecs describe-tasks \
+            --cluster conductor \
+            --tasks "$TASK_ARN" \
+            --query 'tasks[0].containers[0].exitCode' \
+            --output text)
+
+          STOPPED_REASON=$(aws ecs describe-tasks \
+            --cluster conductor \
+            --tasks "$TASK_ARN" \
+            --query 'tasks[0].stoppedReason' \
+            --output text)
+
+          echo "Container exit code: ${EXIT_CODE}"
+          echo "Stopped reason: ${STOPPED_REASON}"
+
+          if [ "$EXIT_CODE" != "0" ]; then
+            echo "Migration failed with exit code ${EXIT_CODE}"
+            exit 1
+          fi
+          echo "Migration completed successfully."

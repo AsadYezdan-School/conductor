@@ -27,3 +27,4 @@ fi
 bazel run //scheduler:publish_image -- --tag "$TAG"
 bazel run //submitter:publish_image -- --tag "$TAG"
 bazel run //worker:publish_image -- --tag "$TAG"
+bazel run //db-migrations:publish_image -- --tag "$TAG"
