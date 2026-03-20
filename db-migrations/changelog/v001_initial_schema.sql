@@ -14,4 +14,3 @@ CREATE TABLE IF NOT EXISTS http_jobs (
     method      request_type NOT NULL
 
 );
---rollback DROP TABLE IF EXISTS jobs;

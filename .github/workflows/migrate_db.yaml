@@ -176,6 +176,8 @@ jobs:
             --tasks "$TASK_ARN" \
             --query 'tasks[0].stoppedReason' \
             --output text)
+
+          echo "Container exit code: $EXIT_CODE"
           echo "Stopped reason: $STOPPED_REASON"
 
           if [ "$EXIT_CODE" != "0" ]; then
