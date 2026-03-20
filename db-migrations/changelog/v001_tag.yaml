@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: tag-v001
-      author: ubuntu
+      author: conductor
       changes:
         - tagDatabase:
             tag: v001
