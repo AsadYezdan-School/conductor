@@ -8,7 +8,14 @@ genrule(
     outs = ["migrations.tar"],
     cmd = """
         mkdir -p $(RULEDIR)/staging/liquibase/changelog && \
-        for f in $(SRCS); do cp $$f $(RULEDIR)/staging/liquibase/changelog/; done && \
+        for f in $(SRCS); do \
+            fname=$$(basename $$f); \
+            if [ "$$fname" = "db.changelog-master.yaml" ]; then \
+                cp $$f $(RULEDIR)/staging/liquibase/$$fname; \
+            else \
+                cp $$f $(RULEDIR)/staging/liquibase/changelog/$$fname; \
+            fi; \
+        done && \
         tar -cf $@ -C $(RULEDIR)/staging . && \
         rm -rf $(RULEDIR)/staging
     """,
