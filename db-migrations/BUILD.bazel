@@ -1,13 +1,19 @@
 load("@rules_oci//oci:defs.bzl", "oci_image", "oci_load", "oci_push")
+load("@rules_pkg//pkg:mappings.bzl", "pkg_files", "strip_prefix")
 load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
 
 package(default_visibility = ["//visibility:public"])
 
+pkg_files(
+    name = "changelog_files",
+    srcs = glob(["changelog/**"]),
+    prefix = "/liquibase",
+    strip_prefix = strip_prefix.from_pkg(),
+)
+
 pkg_tar(
     name = "migrations_layer",
-    srcs = glob(["changelog/**"]),
-    package_dir = "/liquibase/changelog",
-    strip_prefix = "changelog",
+    srcs = [":changelog_files"],
 )
 
 pkg_tar(
