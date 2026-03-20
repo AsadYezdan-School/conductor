@@ -1,0 +1,107 @@
+name: Run Database Migrations
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "migrate" to confirm'
+        required: true
+
+jobs:
+  migrate:
+    if: github.event.inputs.confirm == 'migrate'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-1
+
+      - name: Get stack outputs
+        id: cfn
+        run: |
+          OUTPUTS=$(aws cloudformation describe-stacks \
+            --stack-name AwsMinimalStack \
+            --query 'Stacks[0].Outputs' \
+            --output json)
+
+          get_output() {
+            echo "$OUTPUTS" | jq -r --arg key "$1" '.[] | select(.OutputKey == $key) | .OutputValue'
+          }
+
+          echo "repo_uri=$(get_output MigrationsRepoUri)"          >> "$GITHUB_OUTPUT"
+          echo "task_def_arn=$(get_output MigrationTaskDefArn)"     >> "$GITHUB_OUTPUT"
+          echo "migration_sg=$(get_output MigrationSgId)"           >> "$GITHUB_OUTPUT"
+          echo "subnet_id=$(get_output PublicSubnetId)"             >> "$GITHUB_OUTPUT"
+
+      - name: Login to private ECR
+        run: |
+          aws ecr get-login-password --region eu-west-1 | \
+            docker login --username AWS --password-stdin \
+            $(echo "${{ steps.cfn.outputs.repo_uri }}" | cut -d/ -f1)
+
+      - name: Build and push migration image
+        run: |
+          REPO_URI="${{ steps.cfn.outputs.repo_uri }}"
+          docker build -t "$REPO_URI:latest" db-migrations/
+          docker push "$REPO_URI:latest"
+
+      - name: Run ECS migration task
+        id: run_task
+        run: |
+          TASK_ARN=$(aws ecs run-task \
+            --cluster conductor \
+            --task-definition "${{ steps.cfn.outputs.task_def_arn }}" \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={
+              subnets=[${{ steps.cfn.outputs.subnet_id }}],
+              securityGroups=[${{ steps.cfn.outputs.migration_sg }}],
+              assignPublicIp=ENABLED
+            }" \
+            --query 'tasks[0].taskArn' \
+            --output text)
+          echo "task_arn=$TASK_ARN" >> "$GITHUB_OUTPUT"
+          echo "Started migration task: $TASK_ARN"
+
+      - name: Wait for task to complete
+        run: |
+          TASK_ARN="${{ steps.run_task.outputs.task_arn }}"
+          echo "Waiting for task $TASK_ARN to stop..."
+
+          while true; do
+            STATUS=$(aws ecs describe-tasks \
+              --cluster conductor \
+              --tasks "$TASK_ARN" \
+              --query 'tasks[0].lastStatus' \
+              --output text)
+            echo "Task status: $STATUS"
+            if [ "$STATUS" = "STOPPED" ]; then
+              break
+            fi
+            sleep 10
+          done
+
+          EXIT_CODE=$(aws ecs describe-tasks \
+            --cluster conductor \
+            --tasks "$TASK_ARN" \
+            --query 'tasks[0].containers[0].exitCode' \
+            --output text)
+          echo "Container exit code: $EXIT_CODE"
+
+          STOPPED_REASON=$(aws ecs describe-tasks \
+            --cluster conductor \
+            --tasks "$TASK_ARN" \
+            --query 'tasks[0].stoppedReason' \
+            --output text)
+          echo "Stopped reason: $STOPPED_REASON"
+
+          if [ "$EXIT_CODE" != "0" ]; then
+            echo "Migration task failed with exit code $EXIT_CODE"
+            exit 1
+          fi
+          echo "Migrations completed successfully."

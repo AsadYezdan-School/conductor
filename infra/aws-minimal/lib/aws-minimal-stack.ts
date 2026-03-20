@@ -1,6 +1,7 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as rds from 'aws-cdk-lib/aws-rds';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
@@ -57,6 +58,21 @@ export class AwsMinimalStack extends cdk.Stack {
       deletionProtection: false,
     });
 
+    // --- Migrations infrastructure ---
+    const migrationsRepo = new ecr.Repository(this, 'MigrationsRepo', {
+      repositoryName: 'conductor/migrations',
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      emptyOnDelete: true,
+    });
+
+    const migrationSg = new ec2.SecurityGroup(this, 'MigrationSg', {
+      vpc,
+      description: 'Security group for Liquibase migration task',
+      allowAllOutbound: true,
+    });
+
+    dbSg.addIngressRule(migrationSg, ec2.Port.tcp(5432), 'Allow migration task');
+
     const cluster = new ecs.Cluster(this, 'ConductorCluster', {
       vpc,
       clusterName: 'conductor',
@@ -105,6 +121,35 @@ export class AwsMinimalStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'RdsInstanceIdentifier', {
       value: database.instanceIdentifier,
     });
+
+    // Migration task definition (one-off, no ECS Service)
+    const migrationTaskDef = new ecs.FargateTaskDefinition(this, 'MigrationTaskDef', {
+      cpu: 256,
+      memoryLimitMiB: 512,
+    });
+    database.secret!.grantRead(migrationTaskDef.taskRole);
+    migrationsRepo.grantPull(migrationTaskDef.executionRole!);
+
+    migrationTaskDef.addContainer('MigrationContainer', {
+      image: ecs.ContainerImage.fromEcrRepository(migrationsRepo, 'latest'),
+      command: ['liquibase', 'update'],
+      environment: {
+        LIQUIBASE_COMMAND_URL: `jdbc:postgresql://${database.dbInstanceEndpointAddress}:5432/conductor`,
+        LIQUIBASE_COMMAND_CHANGELOG_FILE: 'changelog/db.changelog-master.yaml',
+      },
+      secrets: {
+        LIQUIBASE_COMMAND_USERNAME: ecs.Secret.fromSecretsManager(database.secret!, 'username'),
+        LIQUIBASE_COMMAND_PASSWORD: ecs.Secret.fromSecretsManager(database.secret!, 'password'),
+      },
+      logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'conductor-migrations' }),
+      essential: true,
+    });
+
+    new cdk.CfnOutput(this, 'MigrationTaskDefArn',  { value: migrationTaskDef.taskDefinitionArn });
+    new cdk.CfnOutput(this, 'MigrationExecutionRoleArn', { value: migrationTaskDef.executionRole!.roleArn });
+    new cdk.CfnOutput(this, 'MigrationSgId',        { value: migrationSg.securityGroupId });
+    new cdk.CfnOutput(this, 'MigrationsRepoUri',    { value: migrationsRepo.repositoryUri });
+    new cdk.CfnOutput(this, 'PublicSubnetId',        { value: vpc.publicSubnets[0].subnetId });
   }
 
   private createFargateService(
