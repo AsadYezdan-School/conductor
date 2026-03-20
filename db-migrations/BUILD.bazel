@@ -9,11 +9,18 @@ pkg_tar(
     package_dir = "/liquibase",
 )
 
+pkg_tar(
+      name = "driver_layer",
+      srcs = ["@maven//:org_postgresql_postgresql"],
+      package_dir = "/liquibase/lib",
+)
+
 oci_image(
     name = "migrations_image",
     base = "@liquibase",
     cmd = ["update"],
-    tars = [":migrations_layer"],
+    tars = [":migrations_layer",
+            ":driver_layer"],
 )
 
 oci_load(

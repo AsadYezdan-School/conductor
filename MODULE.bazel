@@ -63,6 +63,7 @@ maven.install(
         "org.junit.platform:junit-platform-console-standalone:1.12.1",
         "software.amazon.awssdk:sqs:2.31.28",
         "software.amazon.awssdk:url-connection-client:2.31.28",
+        "org.postgresql:postgresql:42.7.3",
     ],
     repositories = [
         "https://repo1.maven.org/maven2",
