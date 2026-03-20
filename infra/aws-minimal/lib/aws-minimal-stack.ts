@@ -139,6 +139,33 @@ export class AwsMinimalStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'MigrationTaskDefArn',  { value: migrationTaskDef.taskDefinitionArn });
     new cdk.CfnOutput(this, 'MigrationSgId',        { value: migrationSg.securityGroupId });
     new cdk.CfnOutput(this, 'PublicSubnetId',        { value: vpc.publicSubnets[0].subnetId });
+
+    // --- Bastion host ---
+    const bastionSg = new ec2.SecurityGroup(this, 'BastionSg', {
+      vpc,
+      description: 'Security group for bastion host',
+      allowAllOutbound: true,
+    });
+    bastionSg.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(22), 'SSH access');
+
+    dbSg.addIngressRule(bastionSg, ec2.Port.tcp(5432), 'Allow bastion to query RDS');
+
+    const bastionKey = new ec2.KeyPair(this, 'BastionKeyPair', {
+      keyPairName: 'conductor-bastion',
+      type: ec2.KeyPairType.ED25519,
+    });
+
+    const bastion = new ec2.Instance(this, 'Bastion', {
+      vpc,
+      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
+      instanceType: ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.NANO),
+      machineImage: ec2.MachineImage.latestAmazonLinux2023(),
+      securityGroup: bastionSg,
+      keyPair: bastionKey,
+    });
+
+    new cdk.CfnOutput(this, 'BastionPublicIp',      { value: bastion.instancePublicIp });
+    new cdk.CfnOutput(this, 'BastionKeyPairSsmPath', { value: bastionKey.privateKey.parameterName });
   }
 
   private createFargateService(
