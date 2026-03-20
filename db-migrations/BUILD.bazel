@@ -1,0 +1,29 @@
+load("@rules_oci//oci:defs.bzl", "oci_image", "oci_load", "oci_push")
+load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
+
+package(default_visibility = ["//visibility:public"])
+
+pkg_tar(
+    name = "migrations_layer",
+    srcs = glob(["changelog/**"]),
+    package_dir = "/liquibase",
+)
+
+oci_image(
+    name = "migrations_image",
+    base = "@liquibase",
+    cmd = ["update"],
+    tars = [":migrations_layer"],
+)
+
+oci_load(
+    name = "migrations_load",
+    image = ":migrations_image",
+    repo_tags = ["conductor/liquibase-migrations:dummy"],
+)
+
+oci_push(
+    name = "publish_image",
+    image = ":migrations_image",
+    repository = "public.ecr.aws/a9s2p1s8/conductor/liquibase-migrations",
+)

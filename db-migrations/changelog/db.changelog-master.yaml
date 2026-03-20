@@ -2,4 +2,3 @@ databaseChangeLog:
   - includeAll:
       path: changelog/
       relativeToChangelogFile: false
-      filter: sql
