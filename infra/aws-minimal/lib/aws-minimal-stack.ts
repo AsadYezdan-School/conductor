@@ -274,7 +274,6 @@ export class AwsMinimalStack extends cdk.Stack {
     serviceName: string,
     imageUri: string,
     environment: Record<string, string> = {},
-    secrets: Record<string, ecs.Secret> = {},
   ): { service: ecs.FargateService; sg: ec2.SecurityGroup } {
     const taskDef = new ecs.FargateTaskDefinition(this, `${id}TaskDef`, {
       cpu: 256,
@@ -286,7 +285,6 @@ export class AwsMinimalStack extends cdk.Stack {
       portMappings: [{ containerPort: 8080 }],
       logging: ecs.LogDrivers.awsLogs({ streamPrefix: serviceName }),
       environment,
-      secrets,
     });
 
     const sg = new ec2.SecurityGroup(this, `${id}Sg`, {
