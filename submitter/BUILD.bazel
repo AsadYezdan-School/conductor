@@ -7,6 +7,9 @@ package(default_visibility = ["//visibility:public"])
 java_library(
     name = "submitter_lib",
     srcs = glob(["src/main/java/com/github/asadyezdanschool/conductor/submitter/*.java"]),
+    deps = [
+        "@maven//:org_postgresql_postgresql",
+    ],
 )
 
 java_binary(
