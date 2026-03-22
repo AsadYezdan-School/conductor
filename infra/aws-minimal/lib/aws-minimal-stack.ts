@@ -88,11 +88,21 @@ export class AwsMinimalStack extends cdk.Stack {
     // Allow proxy to reach DB
     dbSg.addIngressRule(proxySg, ec2.Port.tcp(5432), 'Allow RDS Proxy to DB');
 
-    // Explicit IAM role for the proxy so we can grant secret access
+    // Explicit IAM role for the proxy with inline secret access policy
     const proxyRole = new iam.Role(this, 'ConductorProxyRole', {
       assumedBy: new iam.ServicePrincipal('rds.amazonaws.com'),
+      inlinePolicies: {
+        ProxySecretAccess: new iam.PolicyDocument({
+          statements: [
+            new iam.PolicyStatement({
+              actions: ['secretsmanager:GetSecretValue'],
+              // Wildcard suffix handles the 6-char version suffix Secrets Manager appends
+              resources: [database.secret!.secretArn + '*'],
+            }),
+          ],
+        }),
+      },
     });
-    database.secret!.grantRead(proxyRole);
 
     // --- RDS Proxy (writer endpoint) ---
     const proxy = new rds.DatabaseProxy(this, 'ConductorProxy', {
