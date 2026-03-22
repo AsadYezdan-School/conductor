@@ -150,7 +150,7 @@ export class AwsMinimalStack extends cdk.Stack {
       `public.ecr.aws/a9s2p1s8/conductor/scheduler:${imageTag}`,
       {
         SQS_QUEUE_URL: sqsQueueUrl,
-        DB_READER_URL: `jdbc:postgresql://${readerEndpoint.attrEndpoint}:5432/conductor?sslmode=disable`,
+        DB_READER_URL: `jdbc:postgresql://${proxy.endpoint}:5432/conductor?sslmode=disable`,
       },
       dbSecrets,
     );
