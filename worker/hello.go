@@ -25,10 +25,6 @@ func main() {
 		log.Fatal("DB_WRITER_HOST not set")
 	}
 
-	dsn := fmt.Sprintf(
-		"host=%s port=5432 user=%s password=%s dbname=conductor sslmode=disable",
-		dbHost, dbUser, dbPass,
-	)
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		log.Fatalf("open db: %v", err)
@@ -53,16 +49,29 @@ func main() {
 			continue
 		}
 		for _, msg := range out.Messages {
-			body := *msg.Body
-			fmt.Println(body)
+			jobID := *msg.Body
 
-			// Write processed job record to DB via RDS Proxy
+			// Look up job definition by ID
+			var name, cron, url, method, status string
+			err := db.QueryRow(
+				`SELECT name, cron, url, method, status FROM http_jobs WHERE id = $1`,
+				jobID,
+			).Scan(&name, &cron, &url, &method, &status)
+			if err != nil {
+				log.Printf("job lookup error (id=%s): %v", jobID, err)
+				continue
+			}
+			fmt.Printf("executing job id=%s name=%s cron=%q url=%s method=%s status=%s\n",
+				jobID, name, cron, url, method, status)
+
+			// Mark job as EXECUTED
 			_, dbErr := db.Exec(
-				`UPDATE http_jobs SET status = 'PROCESSED', updated_at = NOW() WHERE id = $1`,
-				body,
+				`UPDATE http_jobs SET status = 'EXECUTED', updated_at = NOW() WHERE id = $1`,
+				jobID,
 			)
 			if dbErr != nil {
-				log.Printf("db write error: %v", dbErr)
+				log.Printf("db update error (id=%s): %v", jobID, dbErr)
+				continue
 			}
 
 			client.DeleteMessage(context.Background(), &sqs.DeleteMessageInput{ //nolint
