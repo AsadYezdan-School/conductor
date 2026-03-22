@@ -89,7 +89,7 @@ export class AwsMinimalStack extends cdk.Stack {
     });
 
     // Grant the proxy's IAM role permission to read the DB secret
-    database.secret!.grantRead(proxy);
+    database.secret!.grantRead(proxy.role);
 
     // --- Reader endpoint (READ_ONLY proxy endpoint) ---
     const readerEndpoint = new rds.CfnDBProxyEndpoint(this, 'ConductorReaderEndpoint', {
