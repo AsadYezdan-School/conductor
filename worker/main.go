@@ -26,10 +26,6 @@ func main() {
 		log.Fatal("DB_WRITER_HOST not set")
 	}
 
-	dsn := fmt.Sprintf(
-		"host=%s port=5432 user=%s password=%s dbname=conductor sslmode=disable",
-		dbHost, dbUser, dbPass,
-	)
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		log.Fatalf("open db: %v", err)
