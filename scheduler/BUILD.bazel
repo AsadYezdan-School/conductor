@@ -8,6 +8,7 @@ java_library(
     name = "scheduler_lib",
     srcs = glob(["src/main/java/com/github/asadyezdanschool/conductor/scheduler/*.java"]),
     deps = [
+        "@maven//:org_postgresql_postgresql",
         "@maven//:software_amazon_awssdk_sqs",
         "@maven//:software_amazon_awssdk_url_connection_client",
     ],
