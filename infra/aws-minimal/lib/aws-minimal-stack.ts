@@ -52,8 +52,8 @@ export class AwsMinimalStack extends cdk.Stack {
       publiclyAccessible: false,
       storageType: rds.StorageType.GP3,
       credentials: rds.Credentials.fromGeneratedSecret('conductor'),
-      backupRetention: cdk.Duration.days(0),
-      deleteAutomatedBackups: true,
+      backupRetention: cdk.Duration.days(1),
+      deleteAutomatedBackups: false,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       deletionProtection: false,
     });
