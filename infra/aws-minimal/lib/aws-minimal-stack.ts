@@ -89,10 +89,21 @@ export class AwsMinimalStack extends cdk.Stack {
     dbSg.addIngressRule(proxySg, ec2.Port.tcp(5432), 'Allow RDS Proxy to DB');
 
     // --- RDS Proxy IAM role ---
+    // Inline policy ensures permission is embedded in the role resource itself,
+    // avoiding a race condition where the proxy starts before a separate
+    // AWS::IAM::Policy resource is attached. ARN uses stack pseudo-parameters
+    // + wildcard to reliably cover the generated secret regardless of CDK token resolution.
     const proxyRole = new iam.Role(this, 'ConductorProxyRole', {
       assumedBy: new iam.ServicePrincipal('rds.amazonaws.com'),
+      inlinePolicies: {
+        SecretAccess: new iam.PolicyDocument({
+          statements: [new iam.PolicyStatement({
+            actions: ['secretsmanager:GetSecretValue', 'secretsmanager:DescribeSecret'],
+            resources: [`arn:aws:secretsmanager:${this.region}:${this.account}:secret:${this.stackName}*`],
+          })],
+        }),
+      },
     });
-    database.secret!.grantRead(proxyRole);
 
     // --- RDS Proxy (writer endpoint) ---
     const proxy = new rds.DatabaseProxy(this, 'ConductorProxy', {
@@ -139,7 +150,7 @@ export class AwsMinimalStack extends cdk.Stack {
       `public.ecr.aws/a9s2p1s8/conductor/scheduler:${imageTag}`,
       {
         SQS_QUEUE_URL: sqsQueueUrl,
-        DB_READER_URL: `jdbc:postgresql://${readerEndpoint.attrEndpoint}:5432/conductor`,
+        DB_READER_URL: `jdbc:postgresql://${readerEndpoint.attrEndpoint}:5432/conductor?sslmode=disable`,
       },
       dbSecrets,
     );
@@ -156,7 +167,7 @@ export class AwsMinimalStack extends cdk.Stack {
       cluster, vpc, 'Submitter', 'conductor-submitter',
       `public.ecr.aws/a9s2p1s8/conductor/submitter:${imageTag}`,
       {
-        DB_WRITER_URL: `jdbc:postgresql://${proxy.endpoint}:5432/conductor`,
+        DB_WRITER_URL: `jdbc:postgresql://${proxy.endpoint}:5432/conductor?sslmode=disable`,
       },
       dbSecrets,
     );

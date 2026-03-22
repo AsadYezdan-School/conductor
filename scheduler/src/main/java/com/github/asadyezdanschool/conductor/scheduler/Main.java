@@ -10,34 +10,45 @@ import java.sql.Statement;
 public class Main {
     public static void main(String[] args) throws Exception {
         String queueUrl = System.getenv("SQS_QUEUE_URL");
-        String dbUrl    = System.getenv("DB_READER_URL");  // jdbc:postgresql://https://aws.rds.reader:5432/conductor
+        String dbUrl    = System.getenv("DB_READER_URL");
         String dbUser   = System.getenv("DB_USERNAME");
         String dbPass   = System.getenv("DB_PASSWORD");
 
         if (queueUrl == null) throw new IllegalStateException("SQS_QUEUE_URL not set");
         if (dbUrl    == null) throw new IllegalStateException("DB_READER_URL not set");
 
-        try (SqsClient sqs = SqsClient.create();
-             Connection conn = DriverManager.getConnection(dbUrl, dbUser, dbPass)) {
+        Connection conn = connectWithRetry(dbUrl, dbUser, dbPass);
 
+        try (SqsClient sqs = SqsClient.create()) {
             while (true) {
-                // Read jobs from DB via reader endpoint
                 try (Statement st = conn.createStatement();
                      ResultSet rs = st.executeQuery(
-                             "SELECT id, name, cron FROM http_jobs WHERE status = 'CREATED' LIMIT 10")) {
+                             "SELECT id FROM http_jobs WHERE status = 'CREATED' LIMIT 10")) {
                     while (rs.next()) {
                         String jobId = rs.getString("id");
-                        String name  = rs.getString("name");
-                        String cron  = rs.getString("cron");
-                        String body  = "job:" + jobId + " name:" + name + " cron:" + cron;
                         sqs.sendMessage(SendMessageRequest.builder()
                                 .queueUrl(queueUrl)
-                                .messageBody(body)
+                                .messageBody(jobId)
                                 .build());
-                        System.out.println("sent: " + body);
+                        System.out.println("queued job: " + jobId);
                     }
                 }
                 Thread.sleep(1000);
+            }
+        }
+    }
+
+    private static Connection connectWithRetry(String url, String user, String pass) throws InterruptedException {
+        int attempts = 0;
+        while (true) {
+            try {
+                Connection conn = DriverManager.getConnection(url, user, pass);
+                System.out.println("Connected to database");
+                return conn;
+            } catch (Exception e) {
+                attempts++;
+                System.err.println("DB connection attempt " + attempts + " failed: " + e.getMessage() + " — retrying in 5s");
+                Thread.sleep(5000);
             }
         }
     }

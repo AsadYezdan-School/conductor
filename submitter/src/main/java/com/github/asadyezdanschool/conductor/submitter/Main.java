@@ -10,27 +10,41 @@ public class Main {
     }
 
     public static void main(String[] args) throws Exception {
-        String dbUrl  = System.getenv("DB_WRITER_URL");  // jdbc:postgresql://https://aws.rds.rds-proxy:5432/conductor
+        String dbUrl  = System.getenv("DB_WRITER_URL");
         String dbUser = System.getenv("DB_USERNAME");
         String dbPass = System.getenv("DB_PASSWORD");
 
         if (dbUrl == null) throw new IllegalStateException("DB_WRITER_URL not set");
 
-        try (Connection conn = DriverManager.getConnection(dbUrl, dbUser, dbPass)) {
-            int i = 0;
-            while (true) {
-                System.out.println(greeting());
+        Connection conn = connectWithRetry(dbUrl, dbUser, dbPass);
 
-                // Insert a new job via RDS Proxy (writer endpoint)
-                try (PreparedStatement ps = conn.prepareStatement(
-                        "INSERT INTO http_jobs (name, cron, url, method) VALUES (?, ?, ?, 'GET'::request_type)")) {
-                    ps.setString(1, "job-" + i++);
-                    ps.setString(2, "* * * * *");
-                    ps.setString(3, "https://example.com");
-                    ps.executeUpdate();
-                }
+        int i = 0;
+        while (true) {
+            System.out.println(greeting());
 
-                Thread.sleep(1000);
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO http_jobs (name, cron, url, method) VALUES (?, ?, ?, 'GET'::request_type)")) {
+                ps.setString(1, "job-" + i++);
+                ps.setString(2, "* * * * *");
+                ps.setString(3, "https://example.com");
+                ps.executeUpdate();
+            }
+
+            Thread.sleep(1000);
+        }
+    }
+
+    private static Connection connectWithRetry(String url, String user, String pass) throws InterruptedException {
+        int attempts = 0;
+        while (true) {
+            try {
+                Connection conn = DriverManager.getConnection(url, user, pass);
+                System.out.println("Connected to database");
+                return conn;
+            } catch (Exception e) {
+                attempts++;
+                System.err.println("DB connection attempt " + attempts + " failed: " + e.getMessage() + " — retrying in 5s");
+                Thread.sleep(5000);
             }
         }
     }

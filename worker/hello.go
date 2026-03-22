@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
@@ -34,6 +35,16 @@ func main() {
 		log.Fatalf("open db: %v", err)
 	}
 	defer db.Close()
+
+	for attempts := 1; ; attempts++ {
+		if err := db.Ping(); err == nil {
+			log.Println("Connected to database")
+			break
+		} else {
+			log.Printf("DB connection attempt %d failed: %v — retrying in 5s", attempts, err)
+			time.Sleep(5 * time.Second)
+		}
+	}
 
 	cfg, err := config.LoadDefaultConfig(context.Background())
 	if err != nil {
