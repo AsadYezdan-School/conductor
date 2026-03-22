@@ -34,11 +34,22 @@ export class AwsMinimalStack extends cdk.Stack {
       allowAllOutbound: true,
     });
 
+    // Allow non-SSL connections so the RDS Proxy can connect to the DB
+    const dbParameterGroup = new rds.ParameterGroup(this, 'ConductorDbParams', {
+      engine: rds.DatabaseInstanceEngine.postgres({
+        version: rds.PostgresEngineVersion.of('17.6', '17'),
+      }),
+      parameters: {
+        'rds.force_ssl': '0',
+      },
+    });
+
     const database = new rds.DatabaseInstance(this, 'ConductorDatabase', {
       instanceIdentifier: 'conductor-database',
       engine: rds.DatabaseInstanceEngine.postgres({
         version: rds.PostgresEngineVersion.of('17.6', '17'),
       }),
+      parameterGroup: dbParameterGroup,
       instanceType: ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
       vpc,
       vpcSubnets: {
