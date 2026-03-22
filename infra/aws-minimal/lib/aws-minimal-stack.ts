@@ -168,8 +168,9 @@ export class AwsMinimalStack extends cdk.Stack {
     //database.secret!.grantRead(proxy.role);
 
     // Allow service SGs to reach the proxy
-    proxySg.addIngressRule(schedulerSg, ec2.Port.tcp(5432), 'Scheduler to proxy');
-    proxySg.addIngressRule(workerSg,    ec2.Port.tcp(5432), 'Worker to proxy');
+    proxySg.addIngressRule(schedulerSg,  ec2.Port.tcp(5432), 'Scheduler to proxy');
+    proxySg.addIngressRule(workerSg,     ec2.Port.tcp(5432), 'Worker to proxy');
+    proxySg.addIngressRule(submitterSg,  ec2.Port.tcp(5432), 'Submitter to proxy');
 
     const jobsQueue = new sqs.Queue(this, 'JobsQueue', {
       queueName: 'conductor-jobs',
