@@ -2,6 +2,7 @@ import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import * as rds from 'aws-cdk-lib/aws-rds';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
 
@@ -87,8 +88,13 @@ export class AwsMinimalStack extends cdk.Stack {
     // Allow proxy to reach DB
     dbSg.addIngressRule(proxySg, ec2.Port.tcp(5432), 'Allow RDS Proxy to DB');
 
+    // --- RDS Proxy IAM role ---
+    const proxyRole = new iam.Role(this, 'ConductorProxyRole', {
+      assumedBy: new iam.ServicePrincipal('rds.amazonaws.com'),
+    });
+    database.secret!.grantRead(proxyRole);
+
     // --- RDS Proxy (writer endpoint) ---
-    // CDK auto-creates the IAM role and grants secretsmanager:GetSecretValue on the secrets passed in
     const proxy = new rds.DatabaseProxy(this, 'ConductorProxy', {
       proxyTarget: rds.ProxyTarget.fromInstance(database),
       secrets: [database.secret!],
@@ -97,6 +103,7 @@ export class AwsMinimalStack extends cdk.Stack {
       securityGroups: [proxySg],
       dbProxyName: 'conductor-proxy',
       requireTLS: false,
+      role: proxyRole,
     });
 
     // --- Reader endpoint (READ_ONLY proxy endpoint) ---
@@ -158,11 +165,11 @@ export class AwsMinimalStack extends cdk.Stack {
     database.secret!.grantRead(schedulerService.taskDefinition.taskRole);
     database.secret!.grantRead(workerService.taskDefinition.taskRole);
     database.secret!.grantRead(submitterService.taskDefinition.taskRole);
+    //database.secret!.grantRead(proxy.role);
 
     // Allow service SGs to reach the proxy
     proxySg.addIngressRule(schedulerSg, ec2.Port.tcp(5432), 'Scheduler to proxy');
     proxySg.addIngressRule(workerSg,    ec2.Port.tcp(5432), 'Worker to proxy');
-    proxySg.addIngressRule(submitterSg, ec2.Port.tcp(5432), 'Submitter to proxy');
 
     const jobsQueue = new sqs.Queue(this, 'JobsQueue', {
       queueName: 'conductor-jobs',
