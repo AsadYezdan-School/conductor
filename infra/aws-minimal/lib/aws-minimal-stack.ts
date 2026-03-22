@@ -4,7 +4,6 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as rds from 'aws-cdk-lib/aws-rds';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
-import * as iam from 'aws-cdk-lib/aws-iam';
 
 export class AwsMinimalStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -88,23 +87,8 @@ export class AwsMinimalStack extends cdk.Stack {
     // Allow proxy to reach DB
     dbSg.addIngressRule(proxySg, ec2.Port.tcp(5432), 'Allow RDS Proxy to DB');
 
-    // Explicit IAM role for the proxy with inline secret access policy
-    const proxyRole = new iam.Role(this, 'ConductorProxyRole', {
-      assumedBy: new iam.ServicePrincipal('rds.amazonaws.com'),
-      inlinePolicies: {
-        ProxySecretAccess: new iam.PolicyDocument({
-          statements: [
-            new iam.PolicyStatement({
-              actions: ['secretsmanager:GetSecretValue'],
-              // Wildcard suffix handles the 6-char version suffix Secrets Manager appends
-              resources: [database.secret!.secretArn + '*'],
-            }),
-          ],
-        }),
-      },
-    });
-
     // --- RDS Proxy (writer endpoint) ---
+    // CDK auto-creates the IAM role and grants secretsmanager:GetSecretValue on the secrets passed in
     const proxy = new rds.DatabaseProxy(this, 'ConductorProxy', {
       proxyTarget: rds.ProxyTarget.fromInstance(database),
       secrets: [database.secret!],
@@ -113,7 +97,6 @@ export class AwsMinimalStack extends cdk.Stack {
       securityGroups: [proxySg],
       dbProxyName: 'conductor-proxy',
       requireTLS: false,
-      role: proxyRole,
     });
 
     // --- Reader endpoint (READ_ONLY proxy endpoint) ---
