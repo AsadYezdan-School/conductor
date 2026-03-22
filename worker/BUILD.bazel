@@ -10,6 +10,7 @@ go_library(
     deps = [
         "@com_github_aws_aws_sdk_go_v2_config//:go_default_library",
         "@com_github_aws_aws_sdk_go_v2_service_sqs//:go_default_library",
+        "@com_github_lib_pq//:go_default_library",
     ],
 )
 
