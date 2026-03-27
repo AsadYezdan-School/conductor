@@ -88,11 +88,7 @@ export class AwsMinimalStack extends cdk.Stack {
     // Allow proxy to reach DB
     dbSg.addIngressRule(proxySg, ec2.Port.tcp(5432), 'Allow RDS Proxy to DB');
 
-    // --- RDS Proxy IAM role ---
-    // Inline policy ensures permission is embedded in the role resource itself,
-    // avoiding a race condition where the proxy starts before a separate
-    // AWS::IAM::Policy resource is attached. ARN uses stack pseudo-parameters
-    // + wildcard to reliably cover the generated secret regardless of CDK token resolution.
+    // --- RDS Proxy IAM role --
     const proxyRole = new iam.Role(this, 'ConductorProxyRole', {
       assumedBy: new iam.ServicePrincipal('rds.amazonaws.com'),
       inlinePolicies: {

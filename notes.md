@@ -10,3 +10,4 @@
 4) Setup some infra for schema migrations of my RDS instance - probably something like flyway or liquibase, but need to do some research on it.
 5) Setup a submitter service that submits random jobs, and a http service that responds to request after a random status of jobs.
 6) Setup some monitoring - look to integrate Otel
+7) Setup up the table schemas for reporting. Use an events table,job_history table  for a jobs run history, and append things to it. (jobs are immutable), create an enum class for job status
