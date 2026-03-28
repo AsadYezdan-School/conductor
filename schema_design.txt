@@ -8,5 +8,60 @@ so that we can add other kinds of jobs in the future, ie shell scripts, python s
 
 REQUIREMENTS
 
+The design must encompass the folowing requirements, give short but realistic ideas for each of the following points:
+1. Data Model
+Based on your scenario, develop a Data Model (S10) using appropriate visual
+documentation methods (e.g., an Entity Relationship Diagram) which should include
+evidence of:
+a) A minimum of 5 entities.
+b) Attributes and their data types.
+c) Primary Keys (PK) and Foreign Keys (FK).
+d) Relationships between entities and their cardinalities.
+e) Justifications of any noteworthy design decisions.
+f) Explanation of how the model satisfies 3NF normalisation.
+
+
+3
+2. Database Implementation
+Using an appropriate relational database platform, build a prototype database (S10) based
+on your Data Model.
+Your database implementation should include:
+a) The full database schema (all tables) as defined by SQL queries.
+b) Sample data populated within each table, of a quantity and type appropriate to the
+chosen scenario. You may generate or source synthetic data, or use real, publicly
+available data, subject to its terms of use.
+c) An explanation of your implementation process in terms of any supportive tools
+you used to implement the database e.g., visual database design tools, Generative
+AI for SQL generation or troubleshooting.
+Evidence your database implementation and sample data collection or generation using
+screenshots, references, and SQL queries (as text) in your report.
+
+Data Reporting and Visualisation
+Following the implementation of your database, you should demonstrate its Business
+Intelligence value through appropriate data queries and visualisations which would support
+data-driven decision-making in the context of your real-world scenario.
+To do this, complete the following tasks to deliver a publicly available dashboard / data
+analysis resource:
+a) Develop at least 3 custom SQL queries which draw on data from more than 1
+table and which could be used to support decision-making in the context of the
+chosen real-world scenario.
+b) Interact with your database programmatically using code or visually using a GUI-
+based tool to generate interactive tables and data visualisations. Possible
+approaches may include, but are not limited to, the following:
+• An online Python notebook (e.g., Jupyter, Google Colab, Kaggle) and the
+Matplotlib library. (Ideal for Data Analysts)
+• A hosted dashboard tool e.g., PowerBI or Tableau or other no-code tools. (Ideal
+for Data / Business Analysts)
+• A simple web application (e.g., a React or NextJS app published on Vercel)
+combined with a JavaScript visualisation library such as GraphJS. (Ideal for
+Software Engineers)
+c) Generate at least two data visualisations (S13) appropriate to the data analysis
+techniques being adopted to help support data-driven decision making within the
+context of your chosen scenario e.g., a word cloud for text analysis, line graph for
+trend / predictive analysis, etc… (S11)
+As well as showcasing the final solution, which should be publicly accessible, explain
+and evidence your implementation process and justify your choice of data
+visualisations, referring back to the real-world scenario and relevant supporting
+literature.
 
 
