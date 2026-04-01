@@ -7,10 +7,10 @@ so that we can add other kinds of jobs in the future, ie shell scripts, python s
 
 
 REQUIREMENTS
-The design must encompass the folowing requirements, ensure that your work maps concretely to these ideas key deliverables:
+The design must encompass the following requirements, ensure that your work maps concretely to these ideas key deliverables and come up with samples that can be linked back using the exact wording of the specifications below:
 
 1. Data Model
-Based on your scenario, develop a Data Model (S10) using appropriate visual
+Based on the scenario, develop a Data Model using appropriate visual
 documentation methods (e.g., an Entity Relationship Diagram) which should include
 evidence of:
 a) A minimum of 5 entities.
@@ -19,6 +19,8 @@ c) Primary Keys (PK) and Foreign Keys (FK).
 d) Relationships between entities and their cardinalities.
 e) Justifications of any noteworthy design decisions.
 f) Explanation of how the model satisfies 3NF normalisation.
+
+You should produce some puml into a file at the root of the directory, as well as the corresponding sql commands as changesets under db-migrations/changelog/
 
 
 
@@ -31,13 +33,10 @@ b) Sample data populated within each table, of a quantity and type appropriate t
 chosen scenario. You may generate or source synthetic data, or use real, publicly
 available data, subject to its terms of use.
 c) An explanation of your implementation process in terms of any supportive tools
-you used to implement the database e.g., visual database design tools, Generative
-AI for SQL generation or troubleshooting.
-Evidence your database implementation and sample data collection or generation using
-screenshots, references, and SQL queries (as text) in your report.
+you used to implement the database 
 
 3. Data Reporting and Visualisation
-Following the implementation of your database, you should demonstrate its Business
+Following the implementation of your database, we should demonstrate its Business
 Intelligence value through appropriate data queries and visualisations which would support
 data-driven decision-making in the context of your real-world scenario.
 To do this, complete the following tasks to deliver a publicly available dashboard / data
@@ -62,6 +61,6 @@ trend / predictive analysis, etc… (S11)
 As well as showcasing the final solution, which should be publicly accessible, explain
 and evidence your implementation process and justify your choice of data
 visualisations, referring back to the real-world scenario and relevant supporting
-literature. For this deliverable, the plan is to create a Raact based web application, that allows for new jobs to be submitted, job status to be viewed, allow modificationss to job defs, jobs to be parked (ie they are submitted but we want the scheduler, not to execute them until they are unparked), and allow jobs to be deleted
+literature. For this deliverable, the plan is to create a React based web application, that allows for new jobs to be submitted, job status to be viewed, allow modificationss to job defs, jobs to be parked (ie they are submitted but we want the scheduler, not to execute them until they are unparked), and allow jobs to be deleted
 
 
