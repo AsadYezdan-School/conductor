@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:17.6
+    container_name: conductor-postgres
+    environment:
+      POSTGRES_USER: conductor
+      POSTGRES_PASSWORD: conductor
+      POSTGRES_DB: conductor
+    ports:
+      - "5432:5432"
+    volumes:
+      - conductor-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U conductor -d conductor"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+
+  elasticmq:
+    image: softwaremill/elasticmq:latest
+    container_name: conductor-elasticmq
+    ports:
+      - "9324:9324"
+      - "9325:9325"
+    volumes:
+      - ./elasticmq.conf:/opt/elasticmq.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9325 || exit 1"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+volumes:
+  conductor-pg-data:
