@@ -1,0 +1,116 @@
+@startuml Conductor ERD
+
+title Conductor — Job Scheduling Service\nEntity Relationship Diagram
+
+skinparam linetype ortho
+skinparam classFontSize 12
+skinparam classAttributeFontSize 11
+
+entity "job_definitions" as jd {
+  * id : UUID <<PK>>
+  --
+  * job_family_id : UUID <<INDEX>>
+  * version : INTEGER
+  * name : TEXT
+  * cron : TEXT
+  * job_type : job_type_enum
+  * is_latest : BOOLEAN
+  * is_parked : BOOLEAN
+  * is_deleted : BOOLEAN
+  * max_retries : INTEGER
+  * created_at : TIMESTAMPTZ
+  * created_by : TEXT
+}
+
+note right of jd
+  UNIQUE(job_family_id, version)
+  job_type_enum: HTTP | SHELL | PYTHON
+  Editing a job creates a new version row.
+  Only one row per family may have is_latest=TRUE.
+  Versioning is managed by the application layer.
+end note
+
+entity "job_type_http_configs" as hc {
+  * id : UUID <<PK>>
+  --
+  * job_definition_id : UUID <<FK>> <<UNIQUE>>
+  * url : TEXT
+  * method : request_type
+  payload : JSONB
+  headers : JSONB
+  * timeout_seconds : INTEGER
+}
+
+note right of hc
+  request_type enum: GET | POST | PUT |
+  DELETE | PATCH | OPTIONS | HEAD
+  One-to-one with job_definitions.
+  Future types: job_type_shell_configs,
+  job_type_python_configs, etc.
+end note
+
+entity "job_runs" as jr {
+  * id : UUID <<PK>>
+  --
+  * job_definition_id : UUID <<FK>>
+  * job_family_id : UUID <<INDEX>>
+  * status : job_status_enum
+  * attempt_number : INTEGER
+  parent_run_id : UUID <<FK, self>>
+  * scheduled_at : TIMESTAMPTZ
+  * queued_at : TIMESTAMPTZ
+  started_at : TIMESTAMPTZ
+  finished_at : TIMESTAMPTZ
+  duration_ms : INTEGER
+  sqs_message_id : TEXT
+}
+
+note right of jr
+  job_status_enum: QUEUED | RUNNING |
+  SUCCEEDED | FAILED | RETRYING | CANCELLED
+  parent_run_id links retry runs to their origin.
+  job_family_id is denormalized for analytics
+  query performance (documented 3NF exception).
+end note
+
+entity "job_run_events" as jre {
+  * id : UUID <<PK>>
+  --
+  * job_run_id : UUID <<FK>>
+  * status : job_status_enum
+  message : TEXT
+  http_status_code : INTEGER
+  response_body : TEXT
+  * occurred_at : TIMESTAMPTZ
+  * source : TEXT
+}
+
+note right of jre
+  Append-only. Never updated.
+  Records every status transition.
+  source: scheduler | worker | system
+end note
+
+entity "job_schedules" as js {
+  * id : UUID <<PK>>
+  --
+  * job_definition_id : UUID <<FK>> <<UNIQUE>>
+  * last_evaluated_at : TIMESTAMPTZ
+  last_triggered_at : TIMESTAMPTZ
+  next_scheduled_at : TIMESTAMPTZ
+}
+
+note right of js
+  One row per is_latest job definition.
+  Prevents duplicate scheduling on scheduler restart.
+  Used by the UI to show "next run" time.
+end note
+
+' Relationships
+jd ||--o{ jr : "1 definition\nhas many runs"
+jd ||--o| hc : "1 definition\nhas 0-or-1 http config"
+jd ||--|| js : "1 active definition\nhas 1 schedule tracker"
+jr ||--o{ jre : "1 run\nhas many events"
+jr ||--o{ jr : "1 run\nmay have many retries\n(via parent_run_id)"
+
+@enduml
