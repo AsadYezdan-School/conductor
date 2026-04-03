@@ -6,12 +6,11 @@ pkgs.mkShell {
   packages = with pkgs; [
     # Runtimes
     go               # 1.24 from nixpkgs; no 1.26-specific language features used in worker
-    jdk24            # closest to Java 25 in nixpkgs; source code is compatible
+    jdk25_headless
     bazelisk         # auto-downloads Bazel 9.0.0 as declared in .bazelversion
 
     # Infrastructure
     docker-compose   # manages postgres + elasticmq containers
-    awscli2          # inspect SQS queue locally via ElasticMQ
     liquibase        # run DB migrations against local postgres
     postgresql_17    # provides pg_isready + psql client
     curl             # used in setup.sh health checks
@@ -72,10 +71,7 @@ pkgs.mkShell {
     }
 
     local-sqs-stats() {
-      aws sqs get-queue-attributes \
-        --endpoint-url http://localhost:9324 \
-        --queue-url "$SQS_QUEUE_URL" \
-        --attribute-names ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible
+      curl -s http://localhost:9325 | ${pkgs.python3}/bin/python3 -m json.tool
     }
 
     echo ""

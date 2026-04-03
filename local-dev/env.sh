@@ -19,7 +19,8 @@ export LIQUIBASE_COMMAND_PASSWORD="conductor"
 # ── SQS / ElasticMQ ──────────────────────────────────────────────────────────
 export SQS_QUEUE_URL="http://localhost:9324/000000000000/conductor-jobs"
 
-# Dummy AWS credentials — ElasticMQ does not validate them
+# Dummy AWS credentials — ElasticMQ does not validate them but the SDKs require
+# a region and non-empty key/secret to initialise their config chain
 export AWS_ACCESS_KEY_ID="local"
 export AWS_SECRET_ACCESS_KEY="local"
 export AWS_REGION="us-east-1"

@@ -193,7 +193,7 @@ local-watch-jobs
 ```bash
 local-sqs-stats
 ```
-A healthy pipeline with all three services running shows `ApproximateNumberOfMessages: 0` — the worker keeps up with the scheduler.
+Hits ElasticMQ's stats endpoint (`localhost:9325`) and pretty-prints the JSON. A healthy pipeline with all three services running shows near-zero message counts.
 
 **Open a psql session:**
 ```bash
@@ -255,7 +255,7 @@ local-logs
 | `jdk24` | Java runtime for Bazel's Java binary targets |
 | `bazelisk` | Downloads and invokes Bazel 9.0.0 (from `.bazelversion`) |
 | `docker-compose` | Manages the local infrastructure containers |
-| `awscli2` | `local-sqs-stats` — queries ElasticMQ via the SQS API |
+| `python3` | `local-sqs-stats` — pretty-prints the ElasticMQ stats JSON |
 | `liquibase` | Applies `db-migrations/changelog/` to local postgres |
 | `postgresql_17` | `psql` client + `pg_isready` for the setup health check |
 | `curl` | Health-check polling in `setup.sh` |
