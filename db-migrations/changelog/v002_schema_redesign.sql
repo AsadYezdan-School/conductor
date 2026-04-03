@@ -7,16 +7,18 @@ DROP TYPE IF EXISTS request_type;
 --changeset conductor:v002-create-enums
 CREATE TYPE request_type AS ENUM ('GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD');
 
-CREATE TYPE job_status_enum AS ENUM (
+CREATE TYPE job_status AS ENUM (
+    'WAITING'
     'QUEUED',
     'RUNNING',
     'SUCCEEDED',
     'FAILED',
     'RETRYING',
-    'CANCELLED'
+    'CANCELLED',
+    'PARKED'
 );
 
-CREATE TYPE job_type_enum AS ENUM (
+CREATE TYPE job_type AS ENUM (
     'HTTP',
     'SHELL',
     'PYTHON'
@@ -24,16 +26,16 @@ CREATE TYPE job_type_enum AS ENUM (
 
 --changeset conductor:v002-create-job-definitions
 -- Central versioned job definition table.
--- Job definitions are immutable: editing creates a new row with version+1.
--- All versions of a conceptual job share the same job_family_id.
--- Only one row per family may have is_latest=TRUE (enforced by application layer).
+-- Job definitions are immutable.
+-- All versions of job share the same job_family_id.
+-- Only one row per family may have is_latest=TRUE can i make the db enforce this?.
 CREATE TABLE job_definitions (
     id             UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
     job_family_id  UUID          NOT NULL,
     version        INTEGER       NOT NULL DEFAULT 1,
     name           TEXT          NOT NULL,
     cron           TEXT          NOT NULL,
-    job_type       job_type_enum NOT NULL,
+    job_type       job_type NOT NULL,
     is_latest      BOOLEAN       NOT NULL DEFAULT TRUE,
     is_parked      BOOLEAN       NOT NULL DEFAULT FALSE,
     is_deleted     BOOLEAN       NOT NULL DEFAULT FALSE,
@@ -52,7 +54,6 @@ CREATE INDEX idx_job_definitions_family_latest ON job_definitions (job_family_id
 -- HTTP-specific configuration for job definitions where job_type = 'HTTP'.
 -- UNIQUE on job_definition_id enforces the one-to-one relationship at the DB level.
 -- Extensibility: future job types will have their own config tables
--- (e.g. job_type_shell_configs, job_type_python_configs) following this same pattern.
 CREATE TABLE job_type_http_configs (
     id                 UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
     job_definition_id  UUID          NOT NULL UNIQUE REFERENCES job_definitions (id),
@@ -73,7 +74,7 @@ CREATE TABLE job_runs (
     id                  UUID              PRIMARY KEY DEFAULT gen_random_uuid(),
     job_definition_id   UUID              NOT NULL REFERENCES job_definitions (id),
     job_family_id       UUID              NOT NULL,
-    status              job_status_enum   NOT NULL DEFAULT 'QUEUED',
+    status              job_status   NOT NULL DEFAULT 'QUEUED',
     attempt_number      INTEGER           NOT NULL DEFAULT 1,
     parent_run_id       UUID              REFERENCES job_runs (id),
     scheduled_at        TIMESTAMPTZ       NOT NULL,
@@ -95,7 +96,7 @@ CREATE INDEX idx_job_runs_parent         ON job_runs (parent_run_id);
 CREATE TABLE job_run_events (
     id               UUID             PRIMARY KEY DEFAULT gen_random_uuid(),
     job_run_id       UUID             NOT NULL REFERENCES job_runs (id),
-    status           job_status_enum  NOT NULL,
+    status           job_status  NOT NULL,
     message          TEXT,
     http_status_code INTEGER,
     response_body    TEXT,
