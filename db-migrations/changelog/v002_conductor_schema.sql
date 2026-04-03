@@ -5,7 +5,7 @@ DROP TYPE IF EXISTS request_type;
 CREATE TYPE request_type AS ENUM ('GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD');
 
 CREATE TYPE job_status AS ENUM (
- 'WAITING'
+ 'WAITING',
  'QUEUED',
  'RUNNING',
  'SUCCEEDED',
