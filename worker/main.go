@@ -15,7 +15,7 @@ import (
 
 func main() {
 	queueUrl := os.Getenv("SQS_QUEUE_URL")
-	dbHost   := os.Getenv("DB_WRITER_HOST") // https://aws.rds.rds-proxy (dummy)
+	dbHost   := os.Getenv("DB_WRITER_HOST")
 	dbUser   := os.Getenv("DB_USERNAME")
 	dbPass   := os.Getenv("DB_PASSWORD")
 
@@ -64,35 +64,83 @@ func main() {
 			continue
 		}
 		for _, msg := range out.Messages {
-			jobID := *msg.Body
-
-			// Look up job definition by ID
-			var name, cron, url, method, status string
-			err := db.QueryRow(
-				`SELECT name, cron, url, method, status FROM http_jobs WHERE id = $1`,
-				jobID,
-			).Scan(&name, &cron, &url, &method, &status)
-			if err != nil {
-				log.Printf("job lookup error (id=%s): %v", jobID, err)
-				continue
+			jobRunID := *msg.Body
+			if processRun(db, jobRunID) {
+				client.DeleteMessage(context.Background(), &sqs.DeleteMessageInput{ //nolint
+					QueueUrl:      &queueUrl,
+					ReceiptHandle: msg.ReceiptHandle,
+				})
 			}
-			fmt.Printf("executing job id=%s name=%s cron=%q url=%s method=%s status=%s\n",
-				jobID, name, cron, url, method, status)
-
-			// Mark job as EXECUTED
-			_, dbErr := db.Exec(
-				`UPDATE http_jobs SET status = 'EXECUTED', updated_at = NOW() WHERE id = $1`,
-				jobID,
-			)
-			if dbErr != nil {
-				log.Printf("db update error (id=%s): %v", jobID, dbErr)
-				continue
-			}
-
-			client.DeleteMessage(context.Background(), &sqs.DeleteMessageInput{ //nolint
-				QueueUrl:      &queueUrl,
-				ReceiptHandle: msg.ReceiptHandle,
-			})
 		}
 	}
+}
+
+func processRun(db *sql.DB, jobRunID string) bool {
+	startedAt := time.Now()
+
+	_, err := db.Exec(
+		`UPDATE job_runs SET status = 'RUNNING'::job_status, started_at = NOW() WHERE id = $1`,
+		jobRunID,
+	)
+	if err != nil {
+		log.Printf("failed to mark run RUNNING (id=%s): %v", jobRunID, err)
+		return false
+	}
+
+	_, err = db.Exec(
+		`INSERT INTO job_run_events (job_run_id, status, source) VALUES ($1, 'RUNNING'::job_status, 'worker')`,
+		jobRunID,
+	)
+	if err != nil {
+		log.Printf("failed to insert RUNNING event (id=%s): %v", jobRunID, err)
+	}
+
+	var name, cron, url, method string
+	err = db.QueryRow(`
+		SELECT jd.name, jd.cron, c.url, c.method::text
+		FROM job_runs jr
+		JOIN job_definitions jd ON jd.id = jr.job_definition_id
+		JOIN job_type_http_configs c ON c.job_definition_id = jd.id
+		WHERE jr.id = $1`,
+		jobRunID,
+	).Scan(&name, &cron, &url, &method)
+	if err != nil {
+		log.Printf("job lookup error (run=%s): %v", jobRunID, err)
+		markFailed(db, jobRunID, startedAt, "job lookup failed: "+err.Error())
+		return false
+	}
+
+	fmt.Printf("executing run=%s name=%s cron=%q url=%s method=%s\n", jobRunID, name, cron, url, method)
+
+	durationMs := int(time.Since(startedAt).Milliseconds())
+
+	_, err = db.Exec(
+		`UPDATE job_runs SET status = 'SUCCEEDED'::job_status, finished_at = NOW(), duration_ms = $2 WHERE id = $1`,
+		jobRunID, durationMs,
+	)
+	if err != nil {
+		log.Printf("failed to mark run SUCCEEDED (id=%s): %v", jobRunID, err)
+	}
+
+	_, err = db.Exec(
+		`INSERT INTO job_run_events (job_run_id, status, source) VALUES ($1, 'SUCCEEDED'::job_status, 'worker')`,
+		jobRunID,
+	)
+	if err != nil {
+		log.Printf("failed to insert SUCCEEDED event (id=%s): %v", jobRunID, err)
+	}
+
+	return true
+}
+
+func markFailed(db *sql.DB, jobRunID string, startedAt time.Time, message string) {
+	durationMs := int(time.Since(startedAt).Milliseconds())
+	db.Exec( //nolint
+		`UPDATE job_runs SET status = 'FAILED'::job_status, finished_at = NOW(), duration_ms = $2 WHERE id = $1`,
+		jobRunID, durationMs,
+	)
+	db.Exec( //nolint
+		`INSERT INTO job_run_events (job_run_id, status, message, source) VALUES ($1, 'FAILED'::job_status, $2, 'worker')`,
+		jobRunID, message,
+	)
 }

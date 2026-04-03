@@ -6,7 +6,6 @@ pkgs.mkShell {
   packages = with pkgs; [
     # Runtimes
     go               # 1.24 from nixpkgs; no 1.26-specific language features used in worker
-    jdk24_headless
     bazelisk         # auto-downloads Bazel 9.0.0 as declared in .bazelversion
 
     # Infrastructure
@@ -23,7 +22,6 @@ pkgs.mkShell {
       source "$REPO_ROOT/local-dev/env.sh"
     fi
 
-    export JAVA_HOME="${pkgs.jdk24_headless}"
     alias bazel=bazelisk
 
     local-up() {
@@ -67,7 +65,11 @@ pkgs.mkShell {
 
     local-watch-jobs() {
       watch -n 2 'psql "postgresql://conductor:conductor@localhost:5432/conductor" \
-        -c "SELECT id, name, status, updated_at FROM http_jobs ORDER BY created_at DESC LIMIT 20;"'
+        -c "SELECT jr.id AS run_id, jd.name, c.url, c.method, jr.status, jr.attempt_number, jr.scheduled_at, jr.duration_ms \
+            FROM job_runs jr \
+            JOIN job_definitions jd ON jd.id = jr.job_definition_id \
+            JOIN job_type_http_configs c ON c.job_definition_id = jd.id \
+            ORDER BY jr.scheduled_at DESC LIMIT 20;"'
     }
 
     local-sqs-stats() {
@@ -87,12 +89,31 @@ pkgs.mkShell {
           echo "  local-down           Stop containers (keeps DB data)"
           echo "  local-down-clean     Stop + delete DB volume"
           echo "  local-psql           Open psql session"
-          echo "  local-watch-jobs     Live view of http_jobs table"
+          echo "  local-watch-jobs     Live view of recent job runs"
           echo "  local-sqs-stats      Queue depth"
           echo "  local-logs           docker-compose log tail"
           echo "  ─────────────────────────────────────────────────────"
           echo ""
     }
+     echo "WARNING: You must have java 25 installed locally, it is not supported in Nix yet, so you need to install it before running submitter and scheduler"
+    echo "Available commands:"
+      echo ""
+      echo "  Conductor local dev shell"
+      echo "  ─────────────────────────────────────────────────────"
+      echo "  local-up             Start postgres + elasticmq"
+      echo "  local-setup          Run migrations (after local-up)"
+      echo "  local-run-submitter  Insert jobs into DB  [bazel run]"
+      echo "  local-run-scheduler  Poll DB → SQS         [bazel run]"
+      echo "  local-run-worker     Poll SQS → execute    [go run]"
+      echo "  local-down           Stop containers (keeps DB data)"
+      echo "  local-down-clean     Stop + delete DB volume"
+      echo "  local-psql           Open psql session"
+      echo "  local-watch-jobs     Live view of recent job runs"
+      echo "  local-sqs-stats      Queue depth"
+      echo "  local-logs           docker-compose log tail"
+      echo "  ─────────────────────────────────────────────────────"
+      echo ""
+
 
   '';
 }
