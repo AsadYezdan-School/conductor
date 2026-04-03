@@ -3,7 +3,7 @@ package com.github.asadyezdanschool.conductor.submitter.model;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Map;
 
-public record CreateJobRequest(
+public record JobCreationRequest(
         @JsonProperty("name") String name,
         @JsonProperty("cron") String cron,
         @JsonProperty("url") String url,

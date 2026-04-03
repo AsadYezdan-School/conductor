@@ -1,8 +1,8 @@
 package com.github.asadyezdanschool.conductor.submitter.unit;
 
 import com.github.asadyezdanschool.conductor.submitter.exception.ValidationException;
-import com.github.asadyezdanschool.conductor.submitter.model.CreateJobRequest;
-import com.github.asadyezdanschool.conductor.submitter.model.CreateJobResponse;
+import com.github.asadyezdanschool.conductor.submitter.model.JobCreationRequest;
+import com.github.asadyezdanschool.conductor.submitter.model.JobCreationResponse;
 import com.github.asadyezdanschool.conductor.submitter.model.EditJobRequest;
 import com.github.asadyezdanschool.conductor.submitter.model.ParkStatusResponse;
 import com.github.asadyezdanschool.conductor.submitter.repository.JobRepository;
@@ -32,13 +32,13 @@ class JobServiceTest {
 
     @Test
     void createJob_validRequest_delegatesToRepository() throws SQLException {
-        CreateJobRequest req = new CreateJobRequest(
+        JobCreationRequest req = new JobCreationRequest(
                 "my-job", "* * * * *", "https://example.com", "GET",
                 null, null, null);
-        CreateJobResponse expected = new CreateJobResponse(UUID.randomUUID(), UUID.randomUUID(), 1);
+        JobCreationResponse expected = new JobCreationResponse(UUID.randomUUID(), UUID.randomUUID(), 1);
         when(mockRepo.createJob(req)).thenReturn(expected);
 
-        CreateJobResponse actual = service.createJob(req);
+        JobCreationResponse actual = service.createJob(req);
 
         assertEquals(expected, actual);
         verify(mockRepo, times(1)).createJob(req);
@@ -46,7 +46,7 @@ class JobServiceTest {
 
     @Test
     void createJob_missingName_throwsValidationException() {
-        CreateJobRequest req = new CreateJobRequest(
+        JobCreationRequest req = new JobCreationRequest(
                 null, "* * * * *", "https://example.com", "GET",
                 null, null, null);
 
@@ -56,7 +56,7 @@ class JobServiceTest {
 
     @Test
     void createJob_missingCron_throwsValidationException() {
-        CreateJobRequest req = new CreateJobRequest(
+        JobCreationRequest req = new JobCreationRequest(
                 "job", "", "https://example.com", "GET",
                 null, null, null);
 
@@ -66,7 +66,7 @@ class JobServiceTest {
 
     @Test
     void createJob_invalidUrl_throwsValidationException() {
-        CreateJobRequest req = new CreateJobRequest(
+        JobCreationRequest req = new JobCreationRequest(
                 "job", "* * * * *", "ftp://example.com", "GET",
                 null, null, null);
 
@@ -76,7 +76,7 @@ class JobServiceTest {
 
     @Test
     void createJob_invalidMethod_throwsValidationException() {
-        CreateJobRequest req = new CreateJobRequest(
+        JobCreationRequest req = new JobCreationRequest(
                 "job", "* * * * *", "https://example.com", "JUMP",
                 null, null, null);
 
@@ -86,11 +86,11 @@ class JobServiceTest {
 
     @Test
     void createJob_allMethodsAccepted() throws SQLException {
-        CreateJobResponse response = new CreateJobResponse(UUID.randomUUID(), UUID.randomUUID(), 1);
+        JobCreationResponse response = new JobCreationResponse(UUID.randomUUID(), UUID.randomUUID(), 1);
         when(mockRepo.createJob(any())).thenReturn(response);
 
         for (String method : new String[]{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"}) {
-            CreateJobRequest req = new CreateJobRequest(
+            JobCreationRequest req = new JobCreationRequest(
                     "job", "* * * * *", "https://example.com", method,
                     null, null, null);
             assertDoesNotThrow(() -> service.createJob(req), "method " + method + " should be valid");
@@ -112,10 +112,10 @@ class JobServiceTest {
         UUID familyId = UUID.randomUUID();
         EditJobRequest req = new EditJobRequest(
                 "new-name", null, null, null, null, null, null);
-        CreateJobResponse expected = new CreateJobResponse(familyId, UUID.randomUUID(), 2);
+        JobCreationResponse expected = new JobCreationResponse(familyId, UUID.randomUUID(), 2);
         when(mockRepo.editJob(familyId, req)).thenReturn(expected);
 
-        CreateJobResponse actual = service.editJob(familyId, req);
+        JobCreationResponse actual = service.editJob(familyId, req);
 
         assertEquals(expected, actual);
     }

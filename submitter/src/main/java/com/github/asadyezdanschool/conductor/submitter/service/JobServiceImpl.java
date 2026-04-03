@@ -1,8 +1,8 @@
 package com.github.asadyezdanschool.conductor.submitter.service;
 
 import com.github.asadyezdanschool.conductor.submitter.exception.ValidationException;
-import com.github.asadyezdanschool.conductor.submitter.model.CreateJobRequest;
-import com.github.asadyezdanschool.conductor.submitter.model.CreateJobResponse;
+import com.github.asadyezdanschool.conductor.submitter.model.JobCreationRequest;
+import com.github.asadyezdanschool.conductor.submitter.model.JobCreationResponse;
 import com.github.asadyezdanschool.conductor.submitter.model.EditJobRequest;
 import com.github.asadyezdanschool.conductor.submitter.model.ParkStatusResponse;
 import com.github.asadyezdanschool.conductor.submitter.repository.JobRepository;
@@ -29,7 +29,7 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public CreateJobResponse createJob(CreateJobRequest req) {
+    public JobCreationResponse createJob(JobCreationRequest req) {
         validateCreate(req);
         try {
             return repo.createJob(req);
@@ -39,7 +39,7 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public CreateJobResponse editJob(UUID familyId, EditJobRequest req) {
+    public JobCreationResponse editJob(UUID familyId, EditJobRequest req) {
         validateEdit(req);
         try {
             return repo.editJob(familyId, req);
@@ -70,7 +70,7 @@ public class JobServiceImpl implements JobService {
 
     // ── validation ────────────────────────────────────────────────────────────
 
-    private void validateCreate(CreateJobRequest req) {
+    private void validateCreate(JobCreationRequest req) {
         List<String> errors = new ArrayList<>();
         if (req == null) {
             errors.add("request body is required");

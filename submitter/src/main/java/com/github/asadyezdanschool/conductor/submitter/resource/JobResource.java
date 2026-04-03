@@ -1,8 +1,8 @@
 package com.github.asadyezdanschool.conductor.submitter.resource;
 
 import com.github.asadyezdanschool.conductor.submitter.exception.ValidationException;
-import com.github.asadyezdanschool.conductor.submitter.model.CreateJobRequest;
-import com.github.asadyezdanschool.conductor.submitter.model.CreateJobResponse;
+import com.github.asadyezdanschool.conductor.submitter.model.JobCreationRequest;
+import com.github.asadyezdanschool.conductor.submitter.model.JobCreationResponse;
 import com.github.asadyezdanschool.conductor.submitter.model.EditJobRequest;
 import com.github.asadyezdanschool.conductor.submitter.model.ParkStatusResponse;
 import com.github.asadyezdanschool.conductor.submitter.service.JobService;
@@ -35,12 +35,12 @@ public class JobResource {
     }
 
     @POST
-    public Response createJob(CreateJobRequest req) {
+    public Response createJob(JobCreationRequest req) {
         log.info("POST /jobs");
         if (req == null) {
             throw new ValidationException(List.of("request body is required"));
         }
-        CreateJobResponse result = jobService.createJob(req);
+        JobCreationResponse result = jobService.createJob(req);
         return Response.status(201).entity(result).build();
     }
 
@@ -52,7 +52,7 @@ public class JobResource {
         if (req == null) {
             throw new ValidationException(List.of("request body is required"));
         }
-        CreateJobResponse result = jobService.editJob(familyId, req);
+        JobCreationResponse result = jobService.editJob(familyId, req);
         return Response.ok(result).build();
     }
 

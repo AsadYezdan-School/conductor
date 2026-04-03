@@ -3,8 +3,8 @@ package com.github.asadyezdanschool.conductor.submitter.repository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.asadyezdanschool.conductor.submitter.exception.NotFoundException;
-import com.github.asadyezdanschool.conductor.submitter.model.CreateJobRequest;
-import com.github.asadyezdanschool.conductor.submitter.model.CreateJobResponse;
+import com.github.asadyezdanschool.conductor.submitter.model.JobCreationRequest;
+import com.github.asadyezdanschool.conductor.submitter.model.JobCreationResponse;
 import com.github.asadyezdanschool.conductor.submitter.model.EditJobRequest;
 
 import javax.inject.Inject;
@@ -31,7 +31,7 @@ public class JobRepository {
         this.dataSource = dataSource;
     }
 
-    public CreateJobResponse createJob(CreateJobRequest req) throws SQLException {
+    public JobCreationResponse createJob(JobCreationRequest req) throws SQLException {
         try (Connection conn = dataSource.getConnection()) {
             conn.setAutoCommit(false);
             try {
@@ -59,7 +59,7 @@ public class JobRepository {
 
                 conn.commit();
                 log.info("Created job definition " + jobDefinitionId + " (family=" + jobFamilyId + ")");
-                return new CreateJobResponse(jobFamilyId, jobDefinitionId, version);
+                return new JobCreationResponse(jobFamilyId, jobDefinitionId, version);
             } catch (Exception e) {
                 conn.rollback();
                 throw e;
@@ -67,7 +67,7 @@ public class JobRepository {
         }
     }
 
-    public CreateJobResponse editJob(UUID familyId, EditJobRequest req) throws SQLException {
+    public JobCreationResponse editJob(UUID familyId, EditJobRequest req) throws SQLException {
         try (Connection conn = dataSource.getConnection()) {
             conn.setAutoCommit(false);
             try {
@@ -146,7 +146,7 @@ public class JobRepository {
 
                 conn.commit();
                 log.info("Edited job family " + familyId + " → new version " + newVersion + " (id=" + newDefinitionId + ")");
-                return new CreateJobResponse(familyId, newDefinitionId, newVersion);
+                return new JobCreationResponse(familyId, newDefinitionId, newVersion);
             } catch (Exception e) {
                 conn.rollback();
                 throw e;
