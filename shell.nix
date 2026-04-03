@@ -23,7 +23,7 @@ pkgs.mkShell {
       source "$REPO_ROOT/local-dev/env.sh"
     fi
 
-    export JAVA_HOME="${pkgs.jdk24}"
+    export JAVA_HOME="${pkgs.jdk25_headless}"
     alias bazel=bazelisk
 
     local-up() {

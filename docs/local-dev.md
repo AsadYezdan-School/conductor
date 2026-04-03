@@ -249,16 +249,16 @@ local-logs
 
 ## Nix Packages Provided
 
-| Package | Why |
-|---|---|
-| `go` | Compiles and runs the worker (`go run .`) |
-| `jdk24` | Java runtime for Bazel's Java binary targets |
-| `bazelisk` | Downloads and invokes Bazel 9.0.0 (from `.bazelversion`) |
+| Package          | Why |
+|------------------|---|
+| `go`             | Compiles and runs the worker (`go run .`) |
+| `jdk25`          | Java runtime for Bazel's Java binary targets |
+| `bazelisk`       | Downloads and invokes Bazel 9.0.0 (from `.bazelversion`) |
 | `docker-compose` | Manages the local infrastructure containers |
-| `python3` | `local-sqs-stats` — pretty-prints the ElasticMQ stats JSON |
-| `liquibase` | Applies `db-migrations/changelog/` to local postgres |
-| `postgresql_17` | `psql` client + `pg_isready` for the setup health check |
-| `curl` | Health-check polling in `setup.sh` |
+| `python3`        | `local-sqs-stats` — pretty-prints the ElasticMQ stats JSON |
+| `liquibase`      | Applies `db-migrations/changelog/` to local postgres |
+| `postgresql_17`  | `psql` client + `pg_isready` for the setup health check |
+| `curl`           | Health-check polling in `setup.sh` |
 
 > **First `bazelisk run` is slow.** Bazelisk downloads Bazel 9.0.0 (~100 MB) then Bazel downloads all Maven and Go dependencies. Subsequent runs use the local Bazel cache and are fast.
 
