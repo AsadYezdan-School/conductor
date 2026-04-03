@@ -257,4 +257,5 @@ class SubmitterIntegrationTest extends IntegrationTestBase {
             .statusCode(201)
             .extract().path("jobFamilyId");
     }
+
 }
