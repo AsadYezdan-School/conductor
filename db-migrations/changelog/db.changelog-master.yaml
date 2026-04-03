@@ -5,3 +5,9 @@ databaseChangeLog:
   - include:
       file: v001_tag.yaml
       relativeToChangelogFile: true
+  - include:
+      file: v002_schema_redesign.sql
+      relativeToChangelogFile: true
+  - include:
+      file: v002_tag.yaml
+      relativeToChangelogFile: true
