@@ -6,7 +6,7 @@ pkgs.mkShell {
   packages = with pkgs; [
     # Runtimes
     go               # 1.24 from nixpkgs; no 1.26-specific language features used in worker
-    jdk25_headless
+    jdk24_headless
     bazelisk         # auto-downloads Bazel 9.0.0 as declared in .bazelversion
 
     # Infrastructure
@@ -23,7 +23,7 @@ pkgs.mkShell {
       source "$REPO_ROOT/local-dev/env.sh"
     fi
 
-    export JAVA_HOME="${pkgs.jdk25_headless}"
+    export JAVA_HOME="${pkgs.jdk24_headless}"
     alias bazel=bazelisk
 
     local-up() {
@@ -74,21 +74,25 @@ pkgs.mkShell {
       curl -s http://localhost:9325 | ${pkgs.python3}/bin/python3 -m json.tool
     }
 
-    echo ""
-    echo "  Conductor local dev shell"
-    echo "  ─────────────────────────────────────────────────────"
-    echo "  local-up             Start postgres + elasticmq"
-    echo "  local-setup          Run migrations (after local-up)"
-    echo "  local-run-submitter  Insert jobs into DB  [bazel run]"
-    echo "  local-run-scheduler  Poll DB → SQS         [bazel run]"
-    echo "  local-run-worker     Poll SQS → execute    [go run]"
-    echo "  local-down           Stop containers (keeps DB data)"
-    echo "  local-down-clean     Stop + delete DB volume"
-    echo "  local-psql           Open psql session"
-    echo "  local-watch-jobs     Live view of http_jobs table"
-    echo "  local-sqs-stats      Queue depth"
-    echo "  local-logs           docker-compose log tail"
-    echo "  ─────────────────────────────────────────────────────"
-    echo ""
+    help() {
+      echo "Available commands:"
+          echo ""
+          echo "  Conductor local dev shell"
+          echo "  ─────────────────────────────────────────────────────"
+          echo "  local-up             Start postgres + elasticmq"
+          echo "  local-setup          Run migrations (after local-up)"
+          echo "  local-run-submitter  Insert jobs into DB  [bazel run]"
+          echo "  local-run-scheduler  Poll DB → SQS         [bazel run]"
+          echo "  local-run-worker     Poll SQS → execute    [go run]"
+          echo "  local-down           Stop containers (keeps DB data)"
+          echo "  local-down-clean     Stop + delete DB volume"
+          echo "  local-psql           Open psql session"
+          echo "  local-watch-jobs     Live view of http_jobs table"
+          echo "  local-sqs-stats      Queue depth"
+          echo "  local-logs           docker-compose log tail"
+          echo "  ─────────────────────────────────────────────────────"
+          echo ""
+    }
+
   '';
 }
