@@ -61,11 +61,51 @@ use_repo(oci, "distroless_base", "distroless_base_linux_amd64", "liquibase", "li
 maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
 maven.install(
     artifacts = [
+        # Existing
         "org.junit.jupiter:junit-jupiter-api:5.12.1",
         "org.junit.platform:junit-platform-console-standalone:1.12.1",
         "software.amazon.awssdk:sqs:2.31.28",
         "software.amazon.awssdk:url-connection-client:2.31.28",
         "org.postgresql:postgresql:42.7.3",
+
+        # Jersey 3.x (jakarta.ws.rs) with JDK HTTP server container (supports virtual threads)
+        "org.glassfish.jersey.core:jersey-server:3.1.11",
+        "org.glassfish.jersey.containers:jersey-container-jdk-http:3.1.11",
+        "org.glassfish.jersey.inject:jersey-hk2:3.1.11",
+        "org.glassfish.jersey.media:jersey-media-json-jackson:3.1.11",
+        "jakarta.ws.rs:jakarta.ws.rs-api:3.1.0",
+
+        # Jackson
+        "com.fasterxml.jackson.core:jackson-core:2.15.4",
+        "com.fasterxml.jackson.core:jackson-databind:2.15.4",
+        "com.fasterxml.jackson.core:jackson-annotations:2.15.4",
+        "com.fasterxml.jackson.module:jackson-module-parameter-names:2.15.4",
+
+        # HikariCP connection pool
+        "com.zaxxer:HikariCP:5.1.0",
+
+        # Dagger 2 DI
+        "com.google.dagger:dagger:2.51.1",
+        "com.google.dagger:dagger-compiler:2.51.1",
+        "javax.inject:javax.inject:1",
+
+        # JUnit 5 extras
+        "org.junit.jupiter:junit-jupiter-engine:5.12.1",
+        "org.junit.jupiter:junit-jupiter-params:5.12.1",
+
+        # Mockito
+        "org.mockito:mockito-core:5.11.0",
+
+        # Testcontainers
+        "org.testcontainers:testcontainers:1.20.4",
+        "org.testcontainers:postgresql:1.20.4",
+
+        # REST Assured
+        "io.rest-assured:rest-assured:5.4.0",
+        "org.hamcrest:hamcrest:2.2",
+
+        # Liquibase Java API (for integration test migrations)
+        "org.liquibase:liquibase-core:4.27.0",
     ],
     repositories = [
         "https://repo1.maven.org/maven2",
