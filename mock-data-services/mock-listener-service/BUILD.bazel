@@ -51,5 +51,5 @@ oci_load(
 oci_push(
     name = "publish_image",
     image = ":mock_listener_service_image",
-    repository = "public.ecr.aws/a9s2p1s8/conductor/mock-listener-service",
+    repository = "public.ecr.aws/a9s2p1s8/conductor/mock-data-listener",
 )
