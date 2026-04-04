@@ -200,7 +200,7 @@ export class AwsMinimalStack extends cdk.Stack {
       {
         SUBMITTER_URL: 'http://submitter:8080',
         MOCK_LISTENER_URL: 'http://mock-listener:8080',
-        SUBMIT_INTERVAL_SECONDS: '30',
+        SUBMIT_INTERVAL_SECONDS: '1',
       },
       {},
       serviceConnectNamespace,
