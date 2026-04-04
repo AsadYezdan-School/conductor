@@ -24,8 +24,13 @@ pkgs.mkShell {
 
     alias bazel=bazelisk
 
+    local-setup() {
+      bash "$REPO_ROOT/local-dev/setup.sh"
+    }
+
     local-up() {
       docker-compose -f "$REPO_ROOT/local-dev/docker-compose.yml" up -d
+      local-setup
     }
 
     local-down() {
@@ -72,17 +77,14 @@ pkgs.mkShell {
             ORDER BY jr.scheduled_at DESC LIMIT 20;"'
     }
 
-    local-sqs-stats() {
-      curl -s http://localhost:9325 | ${pkgs.python3}/bin/python3 -m json.tool
-    }
-
     help() {
+      echo "Visit http://localhost:9325/ to access ElasticMQ's web UI and inspect queues + messages."
+      echo "WARNING: You must have java 25 installed locally, it is not supported in Nix yet, so you need to install it before running submitter and scheduler"
       echo "Available commands:"
           echo ""
           echo "  Conductor local dev shell"
           echo "  ─────────────────────────────────────────────────────"
           echo "  local-up             Start postgres + elasticmq"
-          echo "  local-setup          Run migrations (after local-up)"
           echo "  local-run-submitter  Insert jobs into DB  [bazel run]"
           echo "  local-run-scheduler  Poll DB → SQS         [bazel run]"
           echo "  local-run-worker     Poll SQS → execute    [go run]"
@@ -95,7 +97,8 @@ pkgs.mkShell {
           echo "  ─────────────────────────────────────────────────────"
           echo ""
     }
-     echo "WARNING: You must have java 25 installed locally, it is not supported in Nix yet, so you need to install it before running submitter and scheduler"
+    echo "Visit http://localhost:9325/ to access ElasticMQ's web UI and inspect queues + messages."
+    echo "WARNING: You must have java 25 installed locally, it is not supported in Nix yet, so you need to install it before running submitter and scheduler"
     echo "Available commands:"
       echo ""
       echo "  Conductor local dev shell"
@@ -109,7 +112,6 @@ pkgs.mkShell {
       echo "  local-down-clean     Stop + delete DB volume"
       echo "  local-psql           Open psql session"
       echo "  local-watch-jobs     Live view of recent job runs"
-      echo "  local-sqs-stats      Queue depth"
       echo "  local-logs           docker-compose log tail"
       echo "  ─────────────────────────────────────────────────────"
       echo ""
