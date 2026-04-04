@@ -33,7 +33,7 @@ func main() {
 	if mockListenerURL == "" {
 		log.Fatal("MOCK_LISTENER_URL not set")
 	}
-	intervalSecs := getEnvInt("SUBMIT_INTERVAL_SECONDS", 30)
+	intervalSecs := getEnvInt("SUBMIT_INTERVAL_SECONDS", 1)
 
 	log.Printf("mock-data-service starting — submitter=%s listener=%s interval=%ds",
 		submitterURL, mockListenerURL, intervalSecs)

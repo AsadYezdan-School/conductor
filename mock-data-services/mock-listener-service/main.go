@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
@@ -10,19 +11,19 @@ import (
 )
 
 func main() {
-	port := getEnv("PORT", "8080")
-	delayMs := getEnvInt("RESPONSE_DELAY_MS", 200)
+	port := getEnv("MOCK_LISTENER_PORT", "8081")
 	statusCode := getEnvInt("RESPONSE_STATUS_CODE", 200)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("received %s %s — sleeping %dms, responding %d", r.Method, r.URL.Path, delayMs, statusCode)
-		time.Sleep(time.Duration(delayMs) * time.Millisecond)
+		delaySecs := rand.Intn(10) + 1
+		log.Printf("received %s %s — sleeping %ds, responding %d", r.Method, r.URL.Path, delaySecs, statusCode)
+		time.Sleep(time.Duration(delaySecs) * time.Second)
 		w.WriteHeader(statusCode)
 		fmt.Fprintf(w, `{"status":%d}`, statusCode)
 	})
 
 	addr := ":" + port
-	log.Printf("mock-listener-service listening on %s (delay=%dms status=%d)", addr, delayMs, statusCode)
+	log.Printf("mock-listener-service listening on %s (random delay=1-10s status=%d)", addr, statusCode)
 	if err := http.ListenAndServe(addr, nil); err != nil {
 		log.Fatalf("server error: %v", err)
 	}
