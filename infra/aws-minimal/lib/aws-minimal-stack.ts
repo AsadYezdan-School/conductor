@@ -5,6 +5,7 @@ import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as rds from 'aws-cdk-lib/aws-rds';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
+import * as cloudmap from 'aws-cdk-lib/aws-servicediscovery';
 
 export class AwsMinimalStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -127,6 +128,13 @@ export class AwsMinimalStack extends cdk.Stack {
     });
     readerEndpoint.addDependency(proxy.node.defaultChild as cdk.CfnResource);
 
+    // Service Connect namespace — gives services stable internal DNS names
+    // (e.g. http://submitter:8080, http://mock-listener:8080) within the VPC.
+    const serviceConnectNamespace = new cloudmap.PrivateDnsNamespace(this, 'ConductorNamespace', {
+      name: 'conductor.local',
+      vpc,
+    });
+
     const cluster = new ecs.Cluster(this, 'ConductorCluster', {
       vpc,
       clusterName: 'conductor',
@@ -150,7 +158,7 @@ export class AwsMinimalStack extends cdk.Stack {
       `public.ecr.aws/a9s2p1s8/conductor/scheduler:${imageTag}`,
       {
         SQS_QUEUE_URL: sqsQueueUrl,
-        DB_READER_URL: `jdbc:postgresql://${proxy.endpoint}:5432/conductor?sslmode=disable`,
+        DB_WRITER_URL: `jdbc:postgresql://${proxy.endpoint}:5432/conductor?sslmode=disable`,
       },
       dbSecrets,
     );
@@ -170,6 +178,32 @@ export class AwsMinimalStack extends cdk.Stack {
         DB_WRITER_URL: `jdbc:postgresql://${proxy.endpoint}:5432/conductor?sslmode=disable`,
       },
       dbSecrets,
+      serviceConnectNamespace,
+      'submitter',
+    );
+
+    const { service: mockListenerService, sg: mockListenerSg } = this.createFargateService(
+      cluster, vpc, 'MockListenerService', 'conductor-mock-listener',
+      `public.ecr.aws/a9s2p1s8/conductor/mock-listener-service:${imageTag}`,
+      {
+        RESPONSE_DELAY_MS: '200',
+        RESPONSE_STATUS_CODE: '200',
+      },
+      {},
+      serviceConnectNamespace,
+      'mock-listener',
+    );
+
+    const { service: mockDataService, sg: mockDataSg } = this.createFargateService(
+      cluster, vpc, 'MockDataService', 'conductor-mock-data',
+      `public.ecr.aws/a9s2p1s8/conductor/mock-data-service:${imageTag}`,
+      {
+        SUBMITTER_URL: 'http://submitter:8080',
+        MOCK_LISTENER_URL: 'http://mock-listener:8080',
+        SUBMIT_INTERVAL_SECONDS: '30',
+      },
+      {},
+      serviceConnectNamespace,
     );
 
     // Grant secret read to each task role
@@ -279,15 +313,19 @@ export class AwsMinimalStack extends cdk.Stack {
     imageUri: string,
     environment: Record<string, string> = {},
     secrets: Record<string, ecs.Secret> = {},
+    serviceConnectNamespace?: cloudmap.PrivateDnsNamespace,
+    serviceConnectAlias?: string,
   ): { service: ecs.FargateService; sg: ec2.SecurityGroup } {
     const taskDef = new ecs.FargateTaskDefinition(this, `${id}TaskDef`, {
       cpu: 256,
       memoryLimitMiB: 512,
     });
 
+    // When registering as a Service Connect server, the port mapping must be named.
+    const portMappingName = serviceConnectAlias ? `${id.toLowerCase()}-http` : undefined;
     taskDef.addContainer(`${id}Container`, {
       image: ecs.ContainerImage.fromRegistry(imageUri),
-      portMappings: [{ containerPort: 8080 }],
+      portMappings: [{ containerPort: 8080, name: portMappingName }],
       logging: ecs.LogDrivers.awsLogs({ streamPrefix: serviceName }),
       environment,
       secrets,
@@ -300,6 +338,23 @@ export class AwsMinimalStack extends cdk.Stack {
     });
     sg.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(8080));
 
+    // Build Service Connect config when a namespace is provided.
+    // - With an alias: service acts as both server (published endpoint) and client.
+    // - Without an alias: service acts as client only (can reach other SC services).
+    let serviceConnectConfiguration: ecs.ServiceConnectProps | undefined;
+    if (serviceConnectNamespace) {
+      serviceConnectConfiguration = {
+        namespace: serviceConnectNamespace.namespaceArn,
+        services: serviceConnectAlias
+          ? [{
+              portMappingName: portMappingName!,
+              discoveryName: serviceConnectAlias,
+              port: 8080,
+            }]
+          : [],
+      };
+    }
+
     const service = new ecs.FargateService(this, `${id}Service`, {
       cluster,
       taskDefinition: taskDef,
@@ -309,6 +364,7 @@ export class AwsMinimalStack extends cdk.Stack {
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
       securityGroups: [sg],
       circuitBreaker: { rollback: true },
+      serviceConnectConfiguration,
     });
     return { service, sg };
   }
