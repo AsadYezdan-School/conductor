@@ -186,6 +186,7 @@ export class AwsMinimalStack extends cdk.Stack {
       cluster, vpc, 'MockListenerService', 'conductor-mock-listener',
       `public.ecr.aws/a9s2p1s8/conductor/mock-listener-service:${imageTag}`,
       {
+        MOCK_LISTENER_PORT: '8080',
         RESPONSE_DELAY_MS: '200',
         RESPONSE_STATUS_CODE: '200',
       },
