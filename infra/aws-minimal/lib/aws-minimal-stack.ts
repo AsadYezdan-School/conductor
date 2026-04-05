@@ -199,8 +199,8 @@ export class AwsMinimalStack extends cdk.Stack {
       cluster, vpc, 'MockDataService', 'conductor-mock-data',
       `public.ecr.aws/a9s2p1s8/conductor/mock-data-service:${imageTag}`,
       {
-        SUBMITTER_URL: 'http://submitter:8080',
-        MOCK_LISTENER_URL: 'http://mock-listener:8080',
+        SUBMITTER_URL: 'http://submitter.conductor.local:8080',
+        MOCK_LISTENER_URL: 'http://mock-listener.conductor.local:8080',
         SUBMIT_INTERVAL_SECONDS: '1',
       },
       {},

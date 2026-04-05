@@ -54,7 +54,7 @@ public class AppModule {
     @Singleton
     public ResourceConfig provideResourceConfig(JobResource resource, ExceptionMappers exceptionMappers) {
         ResourceConfig cfg = new ResourceConfig();
-        cfg.registerInstances(resource);
+        cfg.register(resource);
         cfg.register(exceptionMappers);
         cfg.register(JacksonFeature.class);
         return cfg;
