@@ -60,6 +60,14 @@ pkgs.mkShell {
       cd "$REPO_ROOT" && bazelisk run //submitter:Submitter
     }
 
+    local-run-mock-listener() {
+      cd "$REPO_ROOT" && bazelisk run //mock-data-services/mock-listener-service:MockListenerService
+    }
+
+    local-run-mock-data-service() {
+      cd "$REPO_ROOT" && bazelisk run //mock-data-services/mock-data-service:MockDataService
+    }
+
     local-logs() {
       docker-compose -f "$REPO_ROOT/local-dev/docker-compose.yml" logs -f
     }
@@ -84,16 +92,18 @@ pkgs.mkShell {
           echo ""
           echo "  Conductor local dev shell"
           echo "  ─────────────────────────────────────────────────────"
-          echo "  local-up             Start postgres + elasticmq"
-          echo "  local-run-submitter  Insert jobs into DB  [bazel run]"
-          echo "  local-run-scheduler  Poll DB → SQS         [bazel run]"
-          echo "  local-run-worker     Poll SQS → execute    [go run]"
-          echo "  local-down           Stop containers (keeps DB data)"
-          echo "  local-down-clean     Stop + delete DB volume"
-          echo "  local-psql           Open psql session"
-          echo "  local-watch-jobs     Live view of recent job runs"
-          echo "  local-sqs-stats      Queue depth"
-          echo "  local-logs           docker-compose log tail"
+          echo "  local-up                    Start postgres + elasticmq"
+          echo "  local-run-submitter         Insert jobs into DB  [bazel run]"
+          echo "  local-run-scheduler         Poll DB → SQS         [bazel run]"
+          echo "  local-run-worker            Poll SQS → execute    [go run]"
+          echo "  local-run-mock-listener     HTTP listener (port 8081) [bazel run]"
+          echo "  local-run-mock-data-service Periodic job submitter    [bazel run]"
+          echo "  local-down                  Stop containers (keeps DB data)"
+          echo "  local-down-clean            Stop + delete DB volume"
+          echo "  local-psql                  Open psql session"
+          echo "  local-watch-jobs            Live view of recent job runs"
+          echo "  local-sqs-stats             Queue depth"
+          echo "  local-logs                  docker-compose log tail"
           echo "  ─────────────────────────────────────────────────────"
           echo ""
     }
@@ -103,16 +113,18 @@ pkgs.mkShell {
       echo ""
       echo "  Conductor local dev shell"
       echo "  ─────────────────────────────────────────────────────"
-      echo "  local-up             Start postgres + elasticmq"
-      echo "  local-setup          Run migrations (after local-up)"
-      echo "  local-run-submitter  Insert jobs into DB  [bazel run]"
-      echo "  local-run-scheduler  Poll DB → SQS         [bazel run]"
-      echo "  local-run-worker     Poll SQS → execute    [go run]"
-      echo "  local-down           Stop containers (keeps DB data)"
-      echo "  local-down-clean     Stop + delete DB volume"
-      echo "  local-psql           Open psql session"
-      echo "  local-watch-jobs     Live view of recent job runs"
-      echo "  local-logs           docker-compose log tail"
+      echo "  local-up                    Start postgres + elasticmq"
+      echo "  local-setup                 Run migrations (after local-up)"
+      echo "  local-run-submitter         Insert jobs into DB  [bazel run]"
+      echo "  local-run-scheduler         Poll DB → SQS         [bazel run]"
+      echo "  local-run-worker            Poll SQS → execute    [go run]"
+      echo "  local-run-mock-listener     HTTP listener (port 8081) [bazel run]"
+      echo "  local-run-mock-data-service Periodic job submitter    [bazel run]"
+      echo "  local-down                  Stop containers (keeps DB data)"
+      echo "  local-down-clean            Stop + delete DB volume"
+      echo "  local-psql                  Open psql session"
+      echo "  local-watch-jobs            Live view of recent job runs"
+      echo "  local-logs                  docker-compose log tail"
       echo "  ─────────────────────────────────────────────────────"
       echo ""
 
