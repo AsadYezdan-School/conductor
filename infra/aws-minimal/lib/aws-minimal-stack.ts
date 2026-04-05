@@ -184,7 +184,7 @@ export class AwsMinimalStack extends cdk.Stack {
 
     const { service: mockListenerService, sg: mockListenerSg } = this.createFargateService(
       cluster, vpc, 'MockListenerService', 'conductor-mock-listener',
-      `public.ecr.aws/a9s2p1s8/conductor/mock-listener-service:${imageTag}`,
+      `public.ecr.aws/a9s2p1s8/conductor/mock-data-listener:${imageTag}`,
       {
         MOCK_LISTENER_PORT: '8080',
         RESPONSE_DELAY_MS: '200',
