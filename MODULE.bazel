@@ -18,8 +18,8 @@ use_repo(
     go_deps,
     "com_github_aws_aws_sdk_go_v2_config",
     "com_github_aws_aws_sdk_go_v2_service_sqs",
-    ## keep
-    "com_github_lib_pq",
+    "org_golang_google_grpc",
+    "org_golang_google_protobuf",
 )
 
 # Java
@@ -106,6 +106,19 @@ maven.install(
 
         # Liquibase Java API (for integration test migrations)
         "org.liquibase:liquibase-core:4.27.0",
+
+        # gRPC Java (1.79.0 — matches protoc-gen-grpc-java plugin in local Maven cache)
+        "io.grpc:grpc-api:1.79.0",
+        "io.grpc:grpc-stub:1.79.0",
+        "io.grpc:grpc-protobuf:1.79.0",
+        "io.grpc:grpc-netty-shaded:1.79.0",
+        "io.grpc:grpc-inprocess:1.79.0",
+        "com.google.protobuf:protobuf-java:4.31.1",
+        "javax.annotation:javax.annotation-api:1.3.2",
+        "com.google.guava:guava:33.4.8-jre",
+
+        # Cron expression parser (POSIX 5-field)
+        "com.cronutils:cron-utils:9.2.1",
     ],
     repositories = [
         "https://repo1.maven.org/maven2",

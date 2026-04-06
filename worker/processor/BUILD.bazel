@@ -1,0 +1,21 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["http_processor.go"],
+    importpath = "asadyezdanschool/conductor/worker/processor",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//worker/gen/execution:go_default_library",
+    ],
+)
+
+go_test(
+    name = "processor_test",
+    srcs = ["http_processor_test.go"],
+    embed = [":go_default_library"],
+    deps = [
+        "//worker/gen/execution:go_default_library",
+        "@org_golang_google_grpc//:go_default_library",
+    ],
+)

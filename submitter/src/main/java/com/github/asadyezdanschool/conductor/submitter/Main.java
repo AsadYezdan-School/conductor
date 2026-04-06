@@ -1,7 +1,6 @@
 package com.github.asadyezdanschool.conductor.submitter;
 
 import com.sun.net.httpserver.HttpServer;
-import com.zaxxer.hikari.HikariDataSource;
 import org.glassfish.jersey.jdkhttp.JdkHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 
@@ -29,9 +28,7 @@ public class Main {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             log.info("Shutting down...");
             server.stop(5);
-            if (component.dataSource() instanceof HikariDataSource ds) {
-                ds.close();
-            }
+            component.schedulerGrpcClient().shutdown();
         }));
 
         log.info("Submitter service listening on " + baseUri);
