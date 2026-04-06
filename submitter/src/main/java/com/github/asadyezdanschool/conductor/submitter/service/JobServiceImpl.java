@@ -4,6 +4,7 @@ import com.github.asadyezdanschool.conductor.grpc.execution.JobType;
 import com.github.asadyezdanschool.conductor.grpc.management.*;
 import com.github.asadyezdanschool.conductor.submitter.exception.ConflictException;
 import com.github.asadyezdanschool.conductor.submitter.exception.NotFoundException;
+import com.github.asadyezdanschool.conductor.submitter.exception.ServiceUnavailableException;
 import com.github.asadyezdanschool.conductor.submitter.exception.ValidationException;
 import com.github.asadyezdanschool.conductor.submitter.grpc.SchedulerGrpcClient;
 import com.github.asadyezdanschool.conductor.submitter.model.EditJobRequest;
@@ -118,11 +119,13 @@ public class JobServiceImpl implements JobService {
 
     private RuntimeException mapGrpcException(StatusRuntimeException e) {
         return switch (e.getStatus().getCode()) {
-            case NOT_FOUND       -> new NotFoundException(e.getStatus().getDescription());
-            case ALREADY_EXISTS  -> new ConflictException(e.getStatus().getDescription());
+            case NOT_FOUND        -> new NotFoundException(e.getStatus().getDescription());
+            case ALREADY_EXISTS   -> new ConflictException(e.getStatus().getDescription());
             case INVALID_ARGUMENT -> new ValidationException(
                     List.of(e.getStatus().getDescription() != null
                             ? e.getStatus().getDescription() : "Invalid request"));
+            case UNAVAILABLE      -> new ServiceUnavailableException(
+                    "Scheduler is currently unavailable, please retry");
             default -> new RuntimeException("Scheduler error: " + e.getMessage(), e);
         };
     }

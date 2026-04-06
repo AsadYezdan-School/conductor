@@ -56,9 +56,9 @@ public abstract class AppModule {
         config.setJdbcUrl(requireEnv("DB_WRITER_URL"));
         config.setUsername(requireEnv("DB_USERNAME"));
         config.setPassword(requireEnv("DB_PASSWORD"));
-        config.setMaximumPoolSize(10);
-        config.setMinimumIdle(2);
-        config.setConnectionTimeout(30_000);
+        config.setMaximumPoolSize(30);
+        config.setMinimumIdle(5);
+        config.setConnectionTimeout(10_000);
         config.setIdleTimeout(600_000);
         config.setMaxLifetime(1_800_000);
         return new HikariDataSource(config);

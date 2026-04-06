@@ -33,6 +33,12 @@ public class ExceptionMappers implements ExceptionMapper<RuntimeException> {
                     .entity(Map.of("error", ce.getMessage()))
                     .build();
         }
+        if (ex instanceof ServiceUnavailableException sue) {
+            return Response.status(503)
+                    .type(MediaType.APPLICATION_JSON)
+                    .entity(Map.of("error", sue.getMessage()))
+                    .build();
+        }
         log.severe("Unhandled exception: " + ex.getMessage());
         return Response.status(500)
                 .type(MediaType.APPLICATION_JSON)
