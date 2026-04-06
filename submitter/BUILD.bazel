@@ -1,26 +1,52 @@
-load("@rules_java//java:defs.bzl", "java_binary", "java_library", "java_test")
+load("@rules_java//java:defs.bzl", "java_binary", "java_library", "java_plugin", "java_test")
 load("@rules_oci//oci:defs.bzl", "oci_image", "oci_load", "oci_push")
 load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
 
 package(default_visibility = ["//visibility:public"])
 
+# ── Dagger annotation processor ───────────────────────────────────────────────
+java_plugin(
+    name = "dagger_compiler_plugin",
+    generates_api = True,
+    processor_class = "dagger.internal.codegen.ComponentProcessor",
+    deps = [
+        "@maven//:com_google_dagger_dagger_compiler",
+    ],
+)
+
+# ── Main library ──────────────────────────────────────────────────────────────
 java_library(
     name = "submitter_lib",
-    srcs = glob(["src/main/java/com/github/asadyezdanschool/conductor/submitter/*.java"]),
+    srcs = glob(["src/main/java/com/github/asadyezdanschool/conductor/submitter/**/*.java"]),
+    plugins = [":dagger_compiler_plugin"],
     deps = [
+        "@maven//:com_fasterxml_jackson_core_jackson_annotations",
+        "@maven//:com_fasterxml_jackson_core_jackson_core",
+        "@maven//:com_fasterxml_jackson_core_jackson_databind",
+        "@maven//:com_fasterxml_jackson_module_jackson_module_parameter_names",
+        "@maven//:com_google_dagger_dagger",
+        "@maven//:com_zaxxer_HikariCP",
+        "@maven//:javax_inject_javax_inject",
+        "@maven//:jakarta_ws_rs_jakarta_ws_rs_api",
+        "@maven//:org_glassfish_jersey_containers_jersey_container_jdk_http",
+        "@maven//:org_glassfish_jersey_core_jersey_server",
+        "@maven//:org_glassfish_jersey_inject_jersey_hk2",
+        "@maven//:org_glassfish_jersey_media_jersey_media_json_jackson",
         "@maven//:org_postgresql_postgresql",
     ],
 )
 
+# ── Binary ────────────────────────────────────────────────────────────────────
 java_binary(
     name = "Submitter",
     main_class = "com.github.asadyezdanschool.conductor.submitter.Main",
     runtime_deps = [":submitter_lib"],
 )
 
+# ── Unit tests ────────────────────────────────────────────────────────────────
 java_test(
-    name = "submitter_test",
-    srcs = glob(["src/test/java/com/github/asadyezdanschool/conductor/submitter/*Test.java"]),
+    name = "submitter_unit_test",
+    srcs = glob(["src/test/java/com/github/asadyezdanschool/conductor/submitter/unit/**/*.java"]),
     args = [
         "--disable-banner",
         "--scan-classpath",
@@ -28,20 +54,62 @@ java_test(
     ],
     main_class = "org.junit.platform.console.ConsoleLauncher",
     use_testrunner = False,
-    runtime_deps = [
-        "@maven//:org_junit_platform_junit_platform_console_standalone",
-    ],
     deps = [
         ":submitter_lib",
         "@maven//:org_junit_jupiter_junit_jupiter_api",
+        "@maven//:org_junit_jupiter_junit_jupiter_params",
+        "@maven//:org_mockito_mockito_core",
+    ],
+    runtime_deps = [
+        "@maven//:org_junit_jupiter_junit_jupiter_engine",
+        "@maven//:org_junit_platform_junit_platform_console_standalone",
+    ],
+)
+
+# ── Integration tests ─────────────────────────────────────────────────────────
+java_test(
+    name = "submitter_integration_test",
+    srcs = glob(["src/test/java/com/github/asadyezdanschool/conductor/submitter/integration/**/*.java"]),
+    args = [
+        "--disable-banner",
+        "--scan-classpath",
+        "--include-classname=.*IntegrationTest",
+    ],
+    data = ["//db-migrations:changelog"],
+    local = True,
+    main_class = "org.junit.platform.console.ConsoleLauncher",
+    tags = [
+        "integration",
+        "requires-docker",
+    ],
+    use_testrunner = False,
+    deps = [
+        ":submitter_lib",
+        "@maven//:io_rest_assured_rest_assured",
+        "@maven//:org_glassfish_jersey_containers_jersey_container_jdk_http",
+        "@maven//:org_hamcrest_hamcrest",
+        "@maven//:org_junit_jupiter_junit_jupiter_api",
+        "@maven//:org_junit_jupiter_junit_jupiter_params",
+        "@maven//:org_liquibase_liquibase_core",
+        "@maven//:org_postgresql_postgresql",
+        "@maven//:org_testcontainers_postgresql",
+        "@maven//:org_testcontainers_testcontainers",
+    ],
+    runtime_deps = [
+        "@maven//:org_junit_jupiter_junit_jupiter_engine",
+        "@maven//:org_junit_platform_junit_platform_console_standalone",
     ],
 )
 
 test_suite(
     name = "all_tests",
-    tests = [":submitter_test"],
+    tests = [
+        ":submitter_integration_test",
+        ":submitter_unit_test",
+    ],
 )
 
+# ── OCI packaging ─────────────────────────────────────────────────────────────
 pkg_tar(
     name = "submitter_layer",
     srcs = [":Submitter_deploy.jar"],

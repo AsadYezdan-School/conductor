@@ -6,6 +6,8 @@ package(default_visibility = ["//visibility:public"])
 test_suite(
     name = "all_tests",
     tests = [
+        "//mock-data-services/mock-data-service:all_tests",
+        "//mock-data-services/mock-listener-service:all_tests",
         "//scheduler:all_tests",
         "//submitter:all_tests",
         "//worker:all_tests",

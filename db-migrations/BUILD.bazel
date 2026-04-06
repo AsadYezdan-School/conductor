@@ -2,6 +2,11 @@ load("@rules_oci//oci:defs.bzl", "oci_image", "oci_load", "oci_push")
 
 package(default_visibility = ["//visibility:public"])
 
+filegroup(
+    name = "changelog",
+    srcs = glob(["changelog/**"]),
+)
+
 genrule(
     name = "migrations_tar",
     srcs = glob(["changelog/**"]),

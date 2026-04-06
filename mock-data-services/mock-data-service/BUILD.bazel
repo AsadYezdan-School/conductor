@@ -1,0 +1,55 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+load("@rules_oci//oci:defs.bzl", "oci_image", "oci_load", "oci_push")
+load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
+
+go_library(
+    name = "mock_data_service_lib",
+    srcs = ["main.go"],
+    importpath = "asadyezdanschool/conductor/mock-data-services/mock-data-service",
+    visibility = ["//visibility:private"],
+)
+
+go_binary(
+    name = "MockDataService",
+    embed = [":mock_data_service_lib"],
+    goarch = "amd64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "mock_data_service_test",
+    srcs = [],
+    embed = [":mock_data_service_lib"],
+)
+
+test_suite(
+    name = "all_tests",
+    tests = [":mock_data_service_test"],
+)
+
+pkg_tar(
+    name = "mock_data_service_layer",
+    srcs = [":MockDataService"],
+    package_dir = "/app",
+)
+
+oci_image(
+    name = "mock_data_service_image",
+    base = "@distroless_base",
+    entrypoint = ["/app/MockDataService"],
+    tars = [":mock_data_service_layer"],
+)
+
+oci_load(
+    name = "mock_data_service_load",
+    image = ":mock_data_service_image",
+    repo_tags = ["conductor/mock-data-service:dummy"],
+)
+
+oci_push(
+    name = "publish_image",
+    image = ":mock_data_service_image",
+    repository = "public.ecr.aws/a9s2p1s8/conductor/mock-data-service",
+)

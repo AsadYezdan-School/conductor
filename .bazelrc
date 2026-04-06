@@ -1,5 +1,11 @@
 .bazelrc
 
+# Default Java version for local builds (use system JDK 25)
+build --java_language_version=21
+build --tool_java_language_version=21
+build --java_runtime_version=local_jdk
+build --tool_java_runtime_version=local_jdk
+
 # Remote config: JDK 25 + Buildbuddy cache (CI uses --config=remote)
 build:remote --java_language_version=25
 build:remote --tool_java_language_version=25

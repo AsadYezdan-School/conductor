@@ -31,3 +31,11 @@ export AWS_ENDPOINT_URL_SQS="http://localhost:9324"
 # Java AWS SDK v2: global endpoint override (supported since 2.21.0)
 # SqsClient.create() picks this up — no source code changes needed
 export AWS_ENDPOINT_URL="http://localhost:9324"
+
+# ── mock-data-services ────────────────────────────────────────────────────────
+export SUBMITTER_URL="http://localhost:8080"
+export MOCK_LISTENER_PORT="8081"
+export MOCK_LISTENER_URL="http://localhost:8081"
+export SUBMIT_INTERVAL_SECONDS="1"
+export RESPONSE_DELAY_MS="200"
+export RESPONSE_STATUS_CODE="200"

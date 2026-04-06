@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"time"
 
@@ -64,13 +65,16 @@ func main() {
 			continue
 		}
 		for _, msg := range out.Messages {
-			jobRunID := *msg.Body
-			if processRun(db, jobRunID) {
-				client.DeleteMessage(context.Background(), &sqs.DeleteMessageInput{ //nolint
-					QueueUrl:      &queueUrl,
-					ReceiptHandle: msg.ReceiptHandle,
-				})
-			}
+			msg := msg
+			go func() {
+				jobRunID := *msg.Body
+				if processRun(db, jobRunID) {
+					client.DeleteMessage(context.Background(), &sqs.DeleteMessageInput{ //nolint
+						QueueUrl:      &queueUrl,
+						ReceiptHandle: msg.ReceiptHandle,
+					})
+				}
+			}()
 		}
 	}
 }
@@ -111,6 +115,30 @@ func processRun(db *sql.DB, jobRunID string) bool {
 	}
 
 	fmt.Printf("executing run=%s name=%s cron=%q url=%s method=%s\n", jobRunID, name, cron, url, method)
+
+	req, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		log.Printf("failed to build request (run=%s): %v", jobRunID, err)
+		markFailed(db, jobRunID, startedAt, "failed to build request: "+err.Error())
+		return false
+	}
+
+	httpResp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Printf("http request failed (run=%s): %v", jobRunID, err)
+		markFailed(db, jobRunID, startedAt, "http request failed: "+err.Error())
+		return false
+	}
+	httpResp.Body.Close()
+
+	if httpResp.StatusCode < 200 || httpResp.StatusCode >= 300 {
+		msg := fmt.Sprintf("non-2xx response: %d", httpResp.StatusCode)
+		log.Printf("run=%s %s", jobRunID, msg)
+		markFailed(db, jobRunID, startedAt, msg)
+		return false
+	}
+
+	log.Printf("run=%s http %d from %s", jobRunID, httpResp.StatusCode, url)
 
 	durationMs := int(time.Since(startedAt).Milliseconds())
 
