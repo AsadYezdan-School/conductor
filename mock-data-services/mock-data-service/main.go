@@ -33,25 +33,27 @@ func main() {
 	if mockListenerURL == "" {
 		log.Fatal("MOCK_LISTENER_URL not set")
 	}
-	intervalSecs := getEnvInt("SUBMIT_INTERVAL_SECONDS", 1)
+	numJobs := getEnvInt("NUM_JOBS", 20)
 
-	log.Printf("mock-data-service starting — submitter=%s listener=%s interval=%ds",
-		submitterURL, mockListenerURL, intervalSecs)
+	log.Printf("mock-data-service starting — submitter=%s listener=%s numJobs=%d",
+		submitterURL, mockListenerURL, numJobs)
 
-	submitJob(submitterURL, mockListenerURL)
-
-	ticker := time.NewTicker(time.Duration(intervalSecs) * time.Second)
-	defer ticker.Stop()
-	for range ticker.C {
-		submitJob(submitterURL, mockListenerURL)
+	submitted := 0
+	for i := 1; i <= numJobs; i++ {
+		if submitJob(submitterURL, mockListenerURL, i) {
+			submitted++
+		}
 	}
+
+	log.Printf("Startup complete — submitted %d/%d jobs. Sleeping indefinitely.", submitted, numJobs)
+	select {} // block forever so ECS doesn't restart the container
 }
 
-func submitJob(submitterURL, listenerURL string) {
+func submitJob(submitterURL, listenerURL string, index int) bool {
 	body := jobRequest{
-		Name:           fmt.Sprintf("mock-job-%d", time.Now().Unix()),
+		Name:           fmt.Sprintf("mock-job-%02d", index),
 		Cron:           "* * * * *",
-		URL:            listenerURL,
+		URL:            listenerURL + "/ping",
 		Method:         "GET",
 		TimeoutSeconds: 30,
 	}
@@ -59,28 +61,32 @@ func submitJob(submitterURL, listenerURL string) {
 	data, err := json.Marshal(body)
 	if err != nil {
 		log.Printf("marshal error: %v", err)
-		return
+		return false
 	}
 
 	resp, err := http.Post(submitterURL+"/jobs", "application/json", bytes.NewReader(data))
 	if err != nil {
-		log.Printf("submit error: %v", err)
-		return
+		log.Printf("submit error for job %d: %v", index, err)
+		return false
 	}
 	defer resp.Body.Close()
 
 	respBody, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusCreated {
-		log.Printf("unexpected status %d: %s", resp.StatusCode, respBody)
-		return
+		log.Printf("unexpected status %d for job %d: %s", resp.StatusCode, index, respBody)
+		return false
 	}
 
 	var result jobResponse
 	if err := json.Unmarshal(respBody, &result); err != nil {
-		log.Printf("submitted job (unparseable response): %s", respBody)
-		return
+		log.Printf("submitted job %d (unparseable response): %s", index, respBody)
+		return true
 	}
-	log.Printf("submitted job family_id=%s url=%s", result.JobFamilyID, listenerURL)
+	log.Printf("submitted job %d family_id=%s name=%s", index, result.JobFamilyID, body.Name)
+
+	// Small delay between submissions to avoid overwhelming the submitter at startup
+	time.Sleep(100 * time.Millisecond)
+	return true
 }
 
 func getEnvInt(key string, def int) int {

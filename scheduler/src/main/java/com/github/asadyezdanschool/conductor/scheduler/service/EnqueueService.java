@@ -52,30 +52,49 @@ public class EnqueueService {
         this.queueUrl   = queueUrl;
     }
 
+    private static final int MAX_ATTEMPTS = 3;
+
     /**
      * Persist and dispatch a single job run.
      *
-     * @param job      the cached job definition to fire
-     * @param firedAt  the instant at which the scheduler decided to fire this job
+     * @param job               the cached job definition to fire
+     * @param firedAt           the instant at which the scheduler decided to fire this job
+     * @param nextScheduledAt   the next future fire time (already computed by the loop)
      */
-    public void enqueueRun(CachedJob job, Instant firedAt) {
-        try {
-            Instant nextScheduledAt = job.nextScheduledAt();
-            UUID runId = repository.enqueueRun(
-                    job.definitionId(), job.familyId(), firedAt, nextScheduledAt);
+    public void enqueueRun(CachedJob job, Instant firedAt, Instant nextScheduledAt) {
+        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            try {
+                if (attempt > 1) {
+                    log.warning("Retrying enqueue for definition " + job.definitionId()
+                            + " (attempt " + attempt + "/" + MAX_ATTEMPTS + ")");
+                    Thread.sleep(1_000L * (attempt - 1));
+                }
 
-            SqsRunMessage message = new SqsRunMessage(runId.toString(), job.jobType().name());
-            String jsonBody = mapper.writeValueAsString(message);
+                UUID runId = repository.enqueueRun(
+                        job.definitionId(), job.familyId(), firedAt, nextScheduledAt);
 
-            sqsClient.sendMessage(SendMessageRequest.builder()
-                    .queueUrl(queueUrl)
-                    .messageBody(jsonBody)
-                    .build());
+                SqsRunMessage message = new SqsRunMessage(runId.toString(), job.jobType().name());
+                String jsonBody = mapper.writeValueAsString(message);
 
-            log.info("Queued run: " + runId + " for definition: " + job.definitionId());
-        } catch (Exception e) {
-            log.log(Level.SEVERE,
-                    "Failed to enqueue run for definition " + job.definitionId(), e);
+                sqsClient.sendMessage(SendMessageRequest.builder()
+                        .queueUrl(queueUrl)
+                        .messageBody(jsonBody)
+                        .build());
+
+                log.info("Queued run: " + runId + " for definition: " + job.definitionId()
+                        + " (next=" + nextScheduledAt + ")");
+                return;
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                log.warning("Enqueue interrupted for definition " + job.definitionId());
+                return;
+            } catch (Exception e) {
+                log.log(Level.SEVERE,
+                        "Failed to enqueue run for definition " + job.definitionId()
+                                + " (attempt " + attempt + "/" + MAX_ATTEMPTS + ")", e);
+            }
         }
+        log.severe("Giving up enqueue for definition " + job.definitionId()
+                + " after " + MAX_ATTEMPTS + " attempts");
     }
 }

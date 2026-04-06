@@ -74,6 +74,8 @@ func processMessage(ctx context.Context, msg sqstypes.Message,
 		return
 	}
 
+	log.Printf("Polled job run %s, job is of type %s", m.JobRunID, m.JobType)
+
 	var ok bool
 	switch m.JobType {
 	case "HTTP":

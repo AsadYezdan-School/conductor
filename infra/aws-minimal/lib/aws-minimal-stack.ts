@@ -153,31 +153,69 @@ export class AwsMinimalStack extends cdk.Stack {
       DB_PASSWORD: ecs.Secret.fromSecretsManager(database.secret!, 'password'),
     };
 
-    const { service: schedulerService, sg: schedulerSg } = this.createFargateService(
-      cluster, vpc, 'Scheduler', 'conductor-scheduler',
-      `public.ecr.aws/a9s2p1s8/conductor/scheduler:${imageTag}`,
-      {
+    // ── Scheduler (inline: two gRPC ports, Service Connect, higher memory) ──────
+    const schedulerTaskDef = new ecs.FargateTaskDefinition(this, 'SchedulerTaskDef', {
+      cpu: 512,
+      memoryLimitMiB: 1024,
+    });
+    schedulerTaskDef.addContainer('SchedulerContainer', {
+      image: ecs.ContainerImage.fromRegistry(`public.ecr.aws/a9s2p1s8/conductor/scheduler:${imageTag}`),
+      portMappings: [
+        { containerPort: 50051, name: 'scheduler-management' },
+        { containerPort: 50052, name: 'scheduler-execution' },
+      ],
+      logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'conductor-scheduler' }),
+      environment: {
         SQS_QUEUE_URL: sqsQueueUrl,
         DB_WRITER_URL: `jdbc:postgresql://${proxy.endpoint}:5432/conductor?sslmode=disable`,
       },
-      dbSecrets,
-    );
+      secrets: dbSecrets,
+    });
+    const schedulerSg = new ec2.SecurityGroup(this, 'SchedulerSg', {
+      vpc,
+      description: 'Security group for conductor-scheduler',
+      allowAllOutbound: true,
+    });
+    schedulerSg.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(50051), 'gRPC management');
+    schedulerSg.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(50052), 'gRPC execution');
+    const schedulerService = new ecs.FargateService(this, 'SchedulerService', {
+      cluster,
+      taskDefinition: schedulerTaskDef,
+      serviceName: 'conductor-scheduler',
+      desiredCount: 1,
+      assignPublicIp: true,
+      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
+      securityGroups: [schedulerSg],
+      circuitBreaker: { rollback: true },
+      serviceConnectConfiguration: {
+        namespace: serviceConnectNamespace.namespaceArn,
+        services: [
+          { portMappingName: 'scheduler-management', discoveryName: 'scheduler-mgmt', port: 50051 },
+          { portMappingName: 'scheduler-execution',  discoveryName: 'scheduler-exec', port: 50052 },
+        ],
+      },
+    });
+
+    // ── Worker (no DB — communicates with scheduler via gRPC) ─────────────────
     const { service: workerService, sg: workerSg } = this.createFargateService(
       cluster, vpc, 'Worker', 'conductor-worker',
       `public.ecr.aws/a9s2p1s8/conductor/worker:${imageTag}`,
       {
         SQS_QUEUE_URL: sqsQueueUrl,
-        DB_WRITER_HOST: proxy.endpoint,
+        SCHEDULER_GRPC_ADDRESS: 'scheduler-exec.conductor.local:50052',
       },
-      dbSecrets,
+      {},
+      serviceConnectNamespace,
     );
+
+    // ── Submitter (no DB — communicates with scheduler via gRPC) ─────────────
     const { service: submitterService, sg: submitterSg } = this.createFargateService(
       cluster, vpc, 'Submitter', 'conductor-submitter',
       `public.ecr.aws/a9s2p1s8/conductor/submitter:${imageTag}`,
       {
-        DB_WRITER_URL: `jdbc:postgresql://${proxy.endpoint}:5432/conductor?sslmode=disable`,
+        SCHEDULER_GRPC_ADDRESS: 'scheduler-mgmt.conductor.local:50051',
       },
-      dbSecrets,
+      {},
       serviceConnectNamespace,
       'submitter',
     );
@@ -201,22 +239,21 @@ export class AwsMinimalStack extends cdk.Stack {
       {
         SUBMITTER_URL: 'http://submitter.conductor.local:8080',
         MOCK_LISTENER_URL: 'http://mock-listener.conductor.local:8080',
-        SUBMIT_INTERVAL_SECONDS: '1',
+        NUM_JOBS: '20',
       },
       {},
       serviceConnectNamespace,
     );
 
-    // Grant secret read to each task role
+    // Grant secret read — only scheduler reads the DB directly
     database.secret!.grantRead(schedulerService.taskDefinition.taskRole);
-    database.secret!.grantRead(workerService.taskDefinition.taskRole);
-    database.secret!.grantRead(submitterService.taskDefinition.taskRole);
-    //database.secret!.grantRead(proxy.role);
 
-    // Allow service SGs to reach the proxy
-    proxySg.addIngressRule(schedulerSg,  ec2.Port.tcp(5432), 'Scheduler to proxy');
-    proxySg.addIngressRule(workerSg,     ec2.Port.tcp(5432), 'Worker to proxy');
-    proxySg.addIngressRule(submitterSg,  ec2.Port.tcp(5432), 'Submitter to proxy');
+    // Allow scheduler SG to reach the proxy
+    proxySg.addIngressRule(schedulerSg, ec2.Port.tcp(5432), 'Scheduler to proxy');
+
+    // Allow submitter and worker to reach scheduler gRPC ports
+    schedulerSg.addIngressRule(submitterSg, ec2.Port.tcp(50051), 'Submitter to scheduler management gRPC');
+    schedulerSg.addIngressRule(workerSg,    ec2.Port.tcp(50052), 'Worker to scheduler execution gRPC');
 
     const jobsQueue = new sqs.Queue(this, 'JobsQueue', {
       queueName: 'conductor-jobs',

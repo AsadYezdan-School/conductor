@@ -16,22 +16,12 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.List;
 import java.util.UUID;
+import java.util.logging.Logger;
 
-/**
- * Delegates all job management operations to the scheduler's {@code JobManagementService}
- * via gRPC. No database access — the scheduler is the sole DB writer.
- *
- * <h3>gRPC → domain exception mapping</h3>
- * <table>
- *   <tr><th>gRPC status</th><th>Exception thrown</th><th>HTTP status</th></tr>
- *   <tr><td>NOT_FOUND</td><td>{@link NotFoundException}</td><td>404</td></tr>
- *   <tr><td>ALREADY_EXISTS</td><td>{@link ConflictException}</td><td>409</td></tr>
- *   <tr><td>INVALID_ARGUMENT</td><td>{@link ValidationException}</td><td>422</td></tr>
- *   <tr><td>INTERNAL / other</td><td>{@link RuntimeException}</td><td>500</td></tr>
- * </table>
- */
 @Singleton
 public class JobServiceImpl implements JobService {
+
+    private static final Logger log = Logger.getLogger(JobServiceImpl.class.getName());
 
     private final SchedulerGrpcClient grpcClient;
 
@@ -56,8 +46,10 @@ public class JobServiceImpl implements JobService {
                     .build();
 
             CreateJobResponse resp = grpcClient.stub().createJob(proto);
+            UUID familyId = UUID.fromString(resp.getJobFamilyId());
+            log.info("Job \"" + req.name() + "\" (" + familyId + ") was created (v" + resp.getVersion() + ", cron=\"" + req.cron() + "\")");
             return new JobCreationResponse(
-                    UUID.fromString(resp.getJobFamilyId()),
+                    familyId,
                     UUID.fromString(resp.getJobDefinitionId()),
                     resp.getVersion()
             );
@@ -86,6 +78,10 @@ public class JobServiceImpl implements JobService {
 
             com.github.asadyezdanschool.conductor.grpc.management.EditJobResponse resp =
                     grpcClient.stub().editJob(protoBuilder.build());
+            log.info("Job (" + familyId + ") was updated"
+                    + (req.name() != null ? " name=\"" + req.name() + "\"" : "")
+                    + (req.cron()  != null ? " cron=\"" + req.cron() + "\""  : "")
+                    + " -> v" + resp.getVersion());
             return new JobCreationResponse(
                     UUID.fromString(resp.getJobFamilyId()),
                     UUID.fromString(resp.getJobDefinitionId()),
@@ -101,6 +97,7 @@ public class JobServiceImpl implements JobService {
         try {
             ParkJobResponse resp = grpcClient.stub().parkJob(
                     ParkJobRequest.newBuilder().setJobFamilyId(familyId.toString()).build());
+            log.info("Job (" + familyId + ") was parked");
             return new ParkStatusResponse(UUID.fromString(resp.getJobFamilyId()), resp.getIsParked());
         } catch (StatusRuntimeException e) {
             throw mapGrpcException(e);
@@ -112,19 +109,13 @@ public class JobServiceImpl implements JobService {
         try {
             UnparkJobResponse resp = grpcClient.stub().unparkJob(
                     UnparkJobRequest.newBuilder().setJobFamilyId(familyId.toString()).build());
+            log.info("Job (" + familyId + ") was unparked");
             return new ParkStatusResponse(UUID.fromString(resp.getJobFamilyId()), resp.getIsParked());
         } catch (StatusRuntimeException e) {
             throw mapGrpcException(e);
         }
     }
 
-    // ── helpers ───────────────────────────────────────────────────────────────
-
-    /**
-     * Map a gRPC {@link StatusRuntimeException} to the appropriate domain exception so the
-     * existing {@link com.github.asadyezdanschool.conductor.submitter.exception.ExceptionMappers}
-     * can translate it to the correct HTTP response.
-     */
     private RuntimeException mapGrpcException(StatusRuntimeException e) {
         return switch (e.getStatus().getCode()) {
             case NOT_FOUND       -> new NotFoundException(e.getStatus().getDescription());

@@ -53,6 +53,7 @@ func (p *HTTPProcessor) ProcessRun(ctx context.Context, jobRunID string) bool {
 	}
 
 	// 2. Report RUNNING
+	log.Printf("Job run %s: running (%s %s)", jobRunID, details.Method, details.Url)
 	_, err = p.stub.ReportStatus(ctx, &pb.ReportStatusRequest{
 		JobRunId: jobRunID,
 		Status:   pb.JobStatus_RUNNING,
@@ -74,6 +75,7 @@ func (p *HTTPProcessor) ProcessRun(ctx context.Context, jobRunID string) bool {
 		} else {
 			message = fmt.Sprintf("non-2xx status: %d", statusCode)
 		}
+		log.Printf("Job run %s: executed with status FAILED (%s) in %dms", jobRunID, message, durationMs)
 		_, reportErr := p.stub.ReportStatus(ctx, &pb.ReportStatusRequest{
 			JobRunId:       jobRunID,
 			Status:         pb.JobStatus_FAILED,
@@ -89,6 +91,7 @@ func (p *HTTPProcessor) ProcessRun(ctx context.Context, jobRunID string) bool {
 	}
 
 	// 4b. Succeeded
+	log.Printf("Job run %s: executed with status SUCCEEDED (HTTP %d) in %dms", jobRunID, statusCode, durationMs)
 	_, reportErr := p.stub.ReportStatus(ctx, &pb.ReportStatusRequest{
 		JobRunId:   jobRunID,
 		Status:     pb.JobStatus_SUCCEEDED,

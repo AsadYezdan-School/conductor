@@ -80,7 +80,7 @@ public class SchedulerLoop {
             if (job.nextScheduledAt() == null || !job.nextScheduledAt().isAfter(now)) {
                 Instant next = cronEvaluator.nextAfter(job.cron(), now);
                 cache.markTriggered(job.familyId(), now, next); // MUST happen before spawn
-                Thread.ofVirtual().start(() -> enqueueService.enqueueRun(job, now));
+                Thread.ofVirtual().start(() -> enqueueService.enqueueRun(job, now, next));
             }
         }
     }
