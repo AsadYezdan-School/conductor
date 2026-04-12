@@ -2,6 +2,8 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeftIcon } from 'lucide-react';
 import { api } from '../api/client';
+import { isTerminal } from '../api/status';
+import type { RunEvent } from '../api/types';
 import { JobStatusBadge } from '../components/JobStatusBadge';
 import { RunEventTimeline } from '../components/RunEventTimeline';
 
@@ -18,6 +20,12 @@ export function RunDetailPage() {
     queryKey: ['events', runId],
     queryFn: () => api.listRunEvents(runId!),
     enabled: !!runId,
+    // Poll every 2s while the run is in progress; stop once it reaches a terminal state.
+    refetchInterval: (query) => {
+      const data = query.state.data as RunEvent[] | undefined;
+      const lastStatus = data?.at(-1)?.status;
+      return isTerminal(lastStatus) ? false : 2_000;
+    },
   });
 
   if (isLoading) return <div className="p-8 text-gray-500">Loading…</div>;

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { PlusIcon, PencilIcon, PauseIcon, PlayIcon, ArrowRightIcon } from 'lucide-react';
 import { api } from '../api/client';
+import { isTerminal } from '../api/status';
 import type { JobSummary } from '../api/types';
 import { JobStatusBadge } from '../components/JobStatusBadge';
 import { CronHelper } from '../components/CronHelper';
@@ -31,6 +32,12 @@ export function JobListPage() {
   const { data: jobs = [], isLoading, error } = useQuery({
     queryKey: ['jobs'],
     queryFn: api.listJobs,
+    // Speed up polling when any job has an active run; slow down when all idle.
+    refetchInterval: (query) => {
+      const data = query.state.data as JobSummary[] | undefined;
+      const hasActiveRun = data?.some((j) => !isTerminal(j.latestRunStatus) && j.latestRunStatus !== null);
+      return hasActiveRun ? 3_000 : 10_000;
+    },
   });
 
   const parkMutation = useMutation({

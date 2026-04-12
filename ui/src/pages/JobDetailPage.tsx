@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { PencilIcon, PauseIcon, PlayIcon, ChevronLeftIcon } from 'lucide-react';
 import { api } from '../api/client';
+import { isTerminal } from '../api/status';
+import type { JobRunSummary } from '../api/types';
 import { JobStatusBadge } from '../components/JobStatusBadge';
 import { CronHelper } from '../components/CronHelper';
 import { RunHistoryTable } from '../components/RunHistoryTable';
@@ -49,6 +51,12 @@ export function JobDetailPage() {
     queryKey: ['runs', jobFamilyId, page],
     queryFn: () => api.listRuns(jobFamilyId!, page, LIMIT),
     enabled: !!jobFamilyId,
+    // Fast poll when the most recent run is still in progress.
+    refetchInterval: (query) => {
+      const data = query.state.data as JobRunSummary[] | undefined;
+      const latest = data?.[0];
+      return latest && !isTerminal(latest.status) ? 2_000 : 5_000;
+    },
   });
 
   const parkMutation = useMutation({
