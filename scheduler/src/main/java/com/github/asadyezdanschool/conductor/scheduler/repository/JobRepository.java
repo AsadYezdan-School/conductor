@@ -422,12 +422,37 @@ public class JobRepository {
 
     /**
      * Update run status to SUCCEEDED: set status, finished_at, duration_ms.
-     * Also inserts a job_run_events row. Transactional.
+     * Inserts a job_run_events row with http_status_code and response_body. Transactional.
      */
-    public void markSucceeded(UUID jobRunId, long durationMs) throws SQLException {
+    public void markSucceeded(UUID jobRunId, long durationMs,
+                              int httpStatusCode, String responseBody) throws SQLException {
         String updateSql = "UPDATE job_runs SET status = 'SUCCEEDED'::job_status, finished_at = NOW(), duration_ms = ? WHERE id = ?";
-        String eventSql  = "INSERT INTO job_run_events (job_run_id, status, source) VALUES (?, 'SUCCEEDED'::job_status, 'worker')";
-        runStatusTransactionWithDuration(jobRunId, updateSql, eventSql, durationMs);
+        String eventSql  = """
+                INSERT INTO job_run_events (job_run_id, status, http_status_code, response_body, source)
+                VALUES (?, 'SUCCEEDED'::job_status, ?, ?, 'worker')
+                """;
+        try (Connection c = dataSource.getConnection()) {
+            c.setAutoCommit(false);
+            try {
+                try (PreparedStatement ps = c.prepareStatement(updateSql)) {
+                    ps.setLong(1, durationMs);
+                    ps.setObject(2, jobRunId);
+                    ps.executeUpdate();
+                }
+                try (PreparedStatement ps = c.prepareStatement(eventSql)) {
+                    ps.setObject(1, jobRunId);
+                    ps.setInt(2, httpStatusCode);
+                    ps.setString(3, responseBody);
+                    ps.executeUpdate();
+                }
+                c.commit();
+            } catch (SQLException e) {
+                c.rollback();
+                throw e;
+            } finally {
+                c.setAutoCommit(true);
+            }
+        }
     }
 
     /**
