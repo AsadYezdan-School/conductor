@@ -5,15 +5,19 @@ import com.github.asadyezdanschool.conductor.submitter.model.JobCreationRequest;
 import com.github.asadyezdanschool.conductor.submitter.model.JobCreationResponse;
 import com.github.asadyezdanschool.conductor.submitter.model.EditJobRequest;
 import com.github.asadyezdanschool.conductor.submitter.model.ParkStatusResponse;
+import com.github.asadyezdanschool.conductor.submitter.repository.ReadJobRepository;
 import com.github.asadyezdanschool.conductor.submitter.service.JobService;
 
 import javax.inject.Inject;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
@@ -28,10 +32,38 @@ public class JobResource {
     private static final Logger log = Logger.getLogger(JobResource.class.getName());
 
     private final JobService jobService;
+    private final ReadJobRepository readRepo;
 
     @Inject
-    public JobResource(JobService jobService) {
+    public JobResource(JobService jobService, ReadJobRepository readRepo) {
         this.jobService = jobService;
+        this.readRepo = readRepo;
+    }
+
+    @GET
+    public Response listJobs() {
+        log.info("GET /jobs");
+        return Response.ok(readRepo.listJobs()).build();
+    }
+
+    @GET
+    @Path("/{jobFamilyId}")
+    public Response getJob(@PathParam("jobFamilyId") String jobFamilyId) {
+        log.info("GET /jobs/" + jobFamilyId);
+        UUID familyId = parseUuid(jobFamilyId);
+        return Response.ok(readRepo.getJob(familyId)).build();
+    }
+
+    @GET
+    @Path("/{jobFamilyId}/runs")
+    public Response listRuns(
+            @PathParam("jobFamilyId") String jobFamilyId,
+            @QueryParam("page") @DefaultValue("0") int page,
+            @QueryParam("limit") @DefaultValue("20") int limit) {
+        log.info("GET /jobs/" + jobFamilyId + "/runs");
+        UUID familyId = parseUuid(jobFamilyId);
+        int offset = page * limit;
+        return Response.ok(readRepo.listRuns(familyId, limit, offset)).build();
     }
 
     @POST
