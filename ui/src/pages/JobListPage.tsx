@@ -32,11 +32,12 @@ export function JobListPage() {
   const { data: jobs = [], isLoading, error } = useQuery({
     queryKey: ['jobs'],
     queryFn: api.listJobs,
-    // Speed up polling when any job has an active run; slow down when all idle.
+    // Jobs fire at most once per minute, so there's no value polling faster than 15s.
+    // Speed up slightly when a run is actively in progress to catch status transitions.
     refetchInterval: (query) => {
       const data = query.state.data as JobSummary[] | undefined;
       const hasActiveRun = data?.some((j) => !isTerminal(j.latestRunStatus) && j.latestRunStatus !== null);
-      return hasActiveRun ? 3_000 : 10_000;
+      return hasActiveRun ? 15_000 : 30_000;
     },
   });
 

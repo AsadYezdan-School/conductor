@@ -51,11 +51,12 @@ export function JobDetailPage() {
     queryKey: ['runs', jobFamilyId, page],
     queryFn: () => api.listRuns(jobFamilyId!, page, LIMIT),
     enabled: !!jobFamilyId,
-    // Fast poll when the most recent run is still in progress.
+    // New runs only appear on minute boundaries, so 30s is plenty for idle polling.
+    // Tighten to 15s when a run is actively in progress to catch the terminal state sooner.
     refetchInterval: (query) => {
       const data = query.state.data as JobRunSummary[] | undefined;
       const latest = data?.[0];
-      return latest && !isTerminal(latest.status) ? 2_000 : 5_000;
+      return latest && !isTerminal(latest.status) ? 15_000 : 30_000;
     },
   });
 

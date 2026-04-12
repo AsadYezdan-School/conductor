@@ -20,11 +20,11 @@ export function RunDetailPage() {
     queryKey: ['events', runId],
     queryFn: () => api.listRunEvents(runId!),
     enabled: !!runId,
-    // Poll every 2s while the run is in progress; stop once it reaches a terminal state.
+    // Poll every 500ms while the run is in progress; stop once it reaches a terminal state.
     refetchInterval: (query) => {
       const data = query.state.data as RunEvent[] | undefined;
       const lastStatus = data?.at(-1)?.status;
-      return isTerminal(lastStatus) ? false : 2_000;
+      return isTerminal(lastStatus) ? false : 500;
     },
   });
 
