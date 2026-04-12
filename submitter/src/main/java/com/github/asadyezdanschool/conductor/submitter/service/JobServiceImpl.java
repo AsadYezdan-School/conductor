@@ -1,109 +1,132 @@
 package com.github.asadyezdanschool.conductor.submitter.service;
 
+import com.github.asadyezdanschool.conductor.grpc.execution.JobType;
+import com.github.asadyezdanschool.conductor.grpc.management.*;
+import com.github.asadyezdanschool.conductor.submitter.exception.ConflictException;
+import com.github.asadyezdanschool.conductor.submitter.exception.NotFoundException;
+import com.github.asadyezdanschool.conductor.submitter.exception.ServiceUnavailableException;
 import com.github.asadyezdanschool.conductor.submitter.exception.ValidationException;
+import com.github.asadyezdanschool.conductor.submitter.grpc.SchedulerGrpcClient;
+import com.github.asadyezdanschool.conductor.submitter.model.EditJobRequest;
 import com.github.asadyezdanschool.conductor.submitter.model.JobCreationRequest;
 import com.github.asadyezdanschool.conductor.submitter.model.JobCreationResponse;
-import com.github.asadyezdanschool.conductor.submitter.model.EditJobRequest;
 import com.github.asadyezdanschool.conductor.submitter.model.ParkStatusResponse;
-import com.github.asadyezdanschool.conductor.submitter.repository.JobRepository;
+import io.grpc.StatusRuntimeException;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 @Singleton
 public class JobServiceImpl implements JobService {
 
-    private static final Set<String> VALID_METHODS =
-            Set.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD");
+    private static final Logger log = Logger.getLogger(JobServiceImpl.class.getName());
 
-    private final JobRepository repo;
+    private final SchedulerGrpcClient grpcClient;
 
     @Inject
-    public JobServiceImpl(JobRepository repo) {
-        this.repo = repo;
+    public JobServiceImpl(SchedulerGrpcClient grpcClient) {
+        this.grpcClient = grpcClient;
     }
 
     @Override
     public JobCreationResponse createJob(JobCreationRequest req) {
-        validateCreate(req);
         try {
-            return repo.createJob(req);
-        } catch (SQLException e) {
-            throw new RuntimeException("Database error creating job", e);
+            HttpJobConfig.Builder httpConfig = HttpJobConfig.newBuilder()
+                    .setUrl(req.url() != null ? req.url() : "")
+                    .setMethod(req.method() != null ? req.method() : "GET");
+            if (req.timeoutSeconds() != null) httpConfig.setTimeoutSeconds(req.timeoutSeconds());
+
+            CreateJobRequest proto = CreateJobRequest.newBuilder()
+                    .setName(req.name() != null ? req.name() : "")
+                    .setCron(req.cron() != null ? req.cron() : "")
+                    .setJobType(JobType.HTTP)
+                    .setHttpConfig(httpConfig.build())
+                    .build();
+
+            CreateJobResponse resp = grpcClient.stub().createJob(proto);
+            UUID familyId = UUID.fromString(resp.getJobFamilyId());
+            log.info("Job \"" + req.name() + "\" (" + familyId + ") was created (v" + resp.getVersion() + ", cron=\"" + req.cron() + "\")");
+            return new JobCreationResponse(
+                    familyId,
+                    UUID.fromString(resp.getJobDefinitionId()),
+                    resp.getVersion()
+            );
+        } catch (StatusRuntimeException e) {
+            throw mapGrpcException(e);
         }
     }
 
     @Override
     public JobCreationResponse editJob(UUID familyId, EditJobRequest req) {
-        validateEdit(req);
         try {
-            return repo.editJob(familyId, req);
-        } catch (SQLException e) {
-            throw new RuntimeException("Database error editing job", e);
+            com.github.asadyezdanschool.conductor.grpc.management.EditJobRequest.Builder protoBuilder =
+                    com.github.asadyezdanschool.conductor.grpc.management.EditJobRequest.newBuilder()
+                    .setJobFamilyId(familyId.toString());
+
+            if (req.name() != null) protoBuilder.setName(req.name());
+            if (req.cron()  != null) protoBuilder.setCron(req.cron());
+
+            if (req.url() != null || req.method() != null || req.timeoutSeconds() != null) {
+                HttpEditConfig.Builder httpEdit = HttpEditConfig.newBuilder();
+                if (req.url()            != null) httpEdit.setUrl(req.url());
+                if (req.method()         != null) httpEdit.setMethod(req.method());
+                if (req.timeoutSeconds() != null) httpEdit.setTimeoutSeconds(req.timeoutSeconds());
+                protoBuilder.setHttpConfig(httpEdit.build());
+            }
+
+            com.github.asadyezdanschool.conductor.grpc.management.EditJobResponse resp =
+                    grpcClient.stub().editJob(protoBuilder.build());
+            log.info("Job (" + familyId + ") was updated"
+                    + (req.name() != null ? " name=\"" + req.name() + "\"" : "")
+                    + (req.cron()  != null ? " cron=\"" + req.cron() + "\""  : "")
+                    + " -> v" + resp.getVersion());
+            return new JobCreationResponse(
+                    UUID.fromString(resp.getJobFamilyId()),
+                    UUID.fromString(resp.getJobDefinitionId()),
+                    resp.getVersion()
+            );
+        } catch (StatusRuntimeException e) {
+            throw mapGrpcException(e);
         }
     }
 
     @Override
     public ParkStatusResponse parkJob(UUID familyId) {
         try {
-            repo.setParkStatus(familyId, true);
-            return new ParkStatusResponse(familyId, true);
-        } catch (SQLException e) {
-            throw new RuntimeException("Database error parking job", e);
+            ParkJobResponse resp = grpcClient.stub().parkJob(
+                    ParkJobRequest.newBuilder().setJobFamilyId(familyId.toString()).build());
+            log.info("Job (" + familyId + ") was parked");
+            return new ParkStatusResponse(UUID.fromString(resp.getJobFamilyId()), resp.getIsParked());
+        } catch (StatusRuntimeException e) {
+            throw mapGrpcException(e);
         }
     }
 
     @Override
     public ParkStatusResponse unparkJob(UUID familyId) {
         try {
-            repo.setParkStatus(familyId, false);
-            return new ParkStatusResponse(familyId, false);
-        } catch (SQLException e) {
-            throw new RuntimeException("Database error unparking job", e);
+            UnparkJobResponse resp = grpcClient.stub().unparkJob(
+                    UnparkJobRequest.newBuilder().setJobFamilyId(familyId.toString()).build());
+            log.info("Job (" + familyId + ") was unparked");
+            return new ParkStatusResponse(UUID.fromString(resp.getJobFamilyId()), resp.getIsParked());
+        } catch (StatusRuntimeException e) {
+            throw mapGrpcException(e);
         }
     }
 
-    // ── validation ────────────────────────────────────────────────────────────
-
-    private void validateCreate(JobCreationRequest req) {
-        List<String> errors = new ArrayList<>();
-        if (req == null) {
-            errors.add("request body is required");
-            throw new ValidationException(errors);
-        }
-        if (req.name() == null || req.name().isBlank()) errors.add("name is required");
-        if (req.cron() == null || req.cron().isBlank()) errors.add("cron is required");
-        if (req.url() == null || req.url().isBlank()) {
-            errors.add("url is required");
-        } else if (!req.url().matches("https?://.*")) {
-            errors.add("url must start with http:// or https://");
-        }
-        if (req.method() == null || req.method().isBlank()) {
-            errors.add("method is required");
-        } else if (!VALID_METHODS.contains(req.method().toUpperCase())) {
-            errors.add("method must be one of: " + VALID_METHODS);
-        }
-        if (!errors.isEmpty()) throw new ValidationException(errors);
-    }
-
-    private void validateEdit(EditJobRequest req) {
-        List<String> errors = new ArrayList<>();
-        if (req == null) {
-            errors.add("request body is required");
-            throw new ValidationException(errors);
-        }
-        if (req.url() != null && !req.url().isBlank() && !req.url().matches("https?://.*")) {
-            errors.add("url must start with http:// or https://");
-        }
-        if (req.method() != null && !req.method().isBlank()
-                && !VALID_METHODS.contains(req.method().toUpperCase())) {
-            errors.add("method must be one of: " + VALID_METHODS);
-        }
-        if (!errors.isEmpty()) throw new ValidationException(errors);
+    private RuntimeException mapGrpcException(StatusRuntimeException e) {
+        return switch (e.getStatus().getCode()) {
+            case NOT_FOUND        -> new NotFoundException(e.getStatus().getDescription());
+            case ALREADY_EXISTS   -> new ConflictException(e.getStatus().getDescription());
+            case INVALID_ARGUMENT -> new ValidationException(
+                    List.of(e.getStatus().getDescription() != null
+                            ? e.getStatus().getDescription() : "Invalid request"));
+            case UNAVAILABLE      -> new ServiceUnavailableException(
+                    "Scheduler is currently unavailable, please retry");
+            default -> new RuntimeException("Scheduler error: " + e.getMessage(), e);
+        };
     }
 }

@@ -5,8 +5,12 @@ go 1.26.0
 require (
 	github.com/aws/aws-sdk-go-v2/config v1.32.12
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.24
-	github.com/lib/pq v1.10.9
+	google.golang.org/grpc v1.71.0
+	google.golang.org/protobuf v1.36.5
 )
+
+// github.com/lib/pq removed — worker no longer has a direct DB connection;
+// all state transitions go through the scheduler's gRPC JobExecutionService.
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.41.4 // indirect
@@ -22,4 +26,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.17 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.9 // indirect
 	github.com/aws/smithy-go v1.24.2 // indirect
+	golang.org/x/net v0.35.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/text v0.22.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250115164207-1a7da9e5054f // indirect
 )

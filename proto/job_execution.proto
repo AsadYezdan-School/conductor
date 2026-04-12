@@ -1,0 +1,91 @@
+syntax = "proto3";
+
+package conductor.execution;
+
+option java_multiple_files = true;
+option java_package = "com.github.asadyezdanschool.conductor.grpc.execution";
+option java_outer_classname = "JobExecutionProto";
+option go_package = "github.com/asadyezdanschool/conductor/worker/gen/execution";
+
+// ---------------------------------------------------------------------------
+// Shared enums — defined here and imported by job_management.proto
+// ---------------------------------------------------------------------------
+
+enum JobType {
+  JOB_TYPE_UNSPECIFIED = 0;
+  HTTP                 = 1;
+  SHELL                = 2;
+  PYTHON               = 3;
+}
+
+enum JobStatus {
+  JOB_STATUS_UNSPECIFIED = 0;
+  WAITING                = 1;
+  QUEUED                 = 2;
+  RUNNING                = 3;
+  SUCCEEDED              = 4;
+  FAILED                 = 5;
+  RETRYING               = 6;
+  CANCELLED              = 7;
+  PARKED                 = 8;
+}
+
+// ---------------------------------------------------------------------------
+// GetHttpRunDetails — worker fetches job config before executing
+// ---------------------------------------------------------------------------
+
+message GetHttpRunDetailsRequest {
+  string job_run_id = 1;
+}
+
+message GetHttpRunDetailsResponse {
+  string job_run_id        = 1;
+  string job_definition_id = 2;
+  string url               = 3;
+  string method            = 4;
+  // JSON string; empty if not set on the job definition
+  string payload           = 5;
+  // JSON string; empty if not set on the job definition
+  string headers           = 6;
+  int32  timeout_seconds   = 7;
+}
+
+// ---------------------------------------------------------------------------
+// ReportStatus — worker reports transitions: RUNNING, SUCCEEDED, FAILED
+// ---------------------------------------------------------------------------
+
+message ReportStatusRequest {
+  string    job_run_id      = 1;
+  JobStatus status          = 2;
+  // Human-readable detail (error message on FAILED, empty otherwise)
+  string    message         = 3;
+  // HTTP status code returned by the target endpoint (0 if not applicable)
+  int32     http_status_code = 4;
+  // Raw response body (trimmed); only populated on failure for diagnostics
+  string    response_body   = 5;
+  // Wall-clock duration of the execution in milliseconds (SUCCEEDED / FAILED only)
+  int64     duration_ms     = 6;
+}
+
+message ReportStatusResponse {
+  bool acknowledged = 1;
+}
+
+// ---------------------------------------------------------------------------
+// Service
+// ---------------------------------------------------------------------------
+
+// JobExecutionService is consumed exclusively by Worker processes.
+// The scheduler is the sole reader/writer of the database; workers never
+// touch the DB directly — all state transitions flow through this service.
+//
+// Default port: 50052  (env SCHEDULER_EXECUTION_GRPC_PORT)
+service JobExecutionService {
+  // Fetch the HTTP configuration needed to execute a queued run.
+  // Called by the worker immediately after dequeuing an SQS message.
+  rpc GetHttpRunDetails(GetHttpRunDetailsRequest) returns (GetHttpRunDetailsResponse);
+
+  // Report a status transition for a run (RUNNING → SUCCEEDED | FAILED).
+  // The scheduler writes the transition to job_runs and job_run_events.
+  rpc ReportStatus(ReportStatusRequest) returns (ReportStatusResponse);
+}

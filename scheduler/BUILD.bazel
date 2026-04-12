@@ -1,28 +1,60 @@
-load("@rules_java//java:defs.bzl", "java_binary", "java_library", "java_test")
+load("@rules_java//java:defs.bzl", "java_binary", "java_library", "java_plugin", "java_test")
 load("@rules_oci//oci:defs.bzl", "oci_image", "oci_load", "oci_push")
 load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
 
 package(default_visibility = ["//visibility:public"])
 
+# ── Dagger annotation processor ───────────────────────────────────────────────
+java_plugin(
+    name = "dagger_compiler_plugin",
+    generates_api = True,
+    processor_class = "dagger.internal.codegen.ComponentProcessor",
+    deps = [
+        "@maven//:com_google_dagger_dagger_compiler",
+    ],
+)
+
+# ── Main library ──────────────────────────────────────────────────────────────
 java_library(
     name = "scheduler_lib",
-    srcs = glob(["src/main/java/com/github/asadyezdanschool/conductor/scheduler/*.java"]),
+    srcs = glob(["src/main/java/com/github/asadyezdanschool/conductor/scheduler/**/*.java"]),
+    plugins = [":dagger_compiler_plugin"],
     deps = [
+        "//proto:conductor_grpc_java",
+        "@maven//:com_cronutils_cron_utils",
+        "@maven//:com_fasterxml_jackson_core_jackson_annotations",
+        "@maven//:com_fasterxml_jackson_core_jackson_core",
+        "@maven//:com_fasterxml_jackson_core_jackson_databind",
+        "@maven//:com_google_dagger_dagger",
+        "@maven//:com_google_protobuf_protobuf_java",
+        "@maven//:com_zaxxer_HikariCP",
+        "@maven//:io_grpc_grpc_api",
+        "@maven//:io_grpc_grpc_netty_shaded",
+        "@maven//:io_grpc_grpc_protobuf",
+        "@maven//:io_grpc_grpc_stub",
+        "@maven//:javax_annotation_javax_annotation_api",
+        "@maven//:javax_inject_javax_inject",
         "@maven//:org_postgresql_postgresql",
         "@maven//:software_amazon_awssdk_sqs",
         "@maven//:software_amazon_awssdk_url_connection_client",
     ],
 )
 
+# ── Binary ────────────────────────────────────────────────────────────────────
 java_binary(
     name = "Scheduler",
     main_class = "com.github.asadyezdanschool.conductor.scheduler.Main",
     runtime_deps = [":scheduler_lib"],
 )
 
+# ── Unit tests ────────────────────────────────────────────────────────────────
 java_test(
-    name = "scheduler_test",
-    srcs = glob(["src/test/java/com/github/asadyezdanschool/conductor/scheduler/*Test.java"]),
+    name = "scheduler_unit_test",
+    srcs = glob([
+        "src/test/java/com/github/asadyezdanschool/conductor/scheduler/cache/**/*.java",
+        "src/test/java/com/github/asadyezdanschool/conductor/scheduler/scheduling/**/*.java",
+        "src/test/java/com/github/asadyezdanschool/conductor/scheduler/service/**/*.java",
+    ]),
     args = [
         "--disable-banner",
         "--scan-classpath",
@@ -30,20 +62,68 @@ java_test(
     ],
     main_class = "org.junit.platform.console.ConsoleLauncher",
     use_testrunner = False,
-    runtime_deps = [
-        "@maven//:org_junit_platform_junit_platform_console_standalone",
-    ],
     deps = [
         ":scheduler_lib",
+        "//proto:conductor_grpc_java",
+        "@maven//:io_grpc_grpc_api",
         "@maven//:org_junit_jupiter_junit_jupiter_api",
+        "@maven//:org_junit_jupiter_junit_jupiter_params",
+        "@maven//:org_mockito_mockito_core",
+    ],
+    runtime_deps = [
+        "@maven//:org_junit_jupiter_junit_jupiter_engine",
+        "@maven//:org_junit_platform_junit_platform_console_standalone",
+    ],
+)
+
+# ── Integration tests ─────────────────────────────────────────────────────────
+java_test(
+    name = "scheduler_integration_test",
+    srcs = glob([
+        "src/test/java/com/github/asadyezdanschool/conductor/scheduler/repository/**/*.java",
+        "src/test/java/com/github/asadyezdanschool/conductor/scheduler/integration/**/*.java",
+    ]),
+    args = [
+        "--disable-banner",
+        "--scan-classpath",
+        "--include-classname=.*Test",
+    ],
+    data = ["//db-migrations:changelog"],
+    local = True,
+    main_class = "org.junit.platform.console.ConsoleLauncher",
+    tags = [
+        "integration",
+        "requires-docker",
+    ],
+    use_testrunner = False,
+    deps = [
+        ":scheduler_lib",
+        "//proto:conductor_grpc_java",
+        "@maven//:com_zaxxer_HikariCP",
+        "@maven//:io_grpc_grpc_api",
+        "@maven//:io_grpc_grpc_inprocess",
+        "@maven//:org_junit_jupiter_junit_jupiter_api",
+        "@maven//:org_junit_jupiter_junit_jupiter_params",
+        "@maven//:org_liquibase_liquibase_core",
+        "@maven//:org_postgresql_postgresql",
+        "@maven//:org_testcontainers_postgresql",
+        "@maven//:org_testcontainers_testcontainers",
+    ],
+    runtime_deps = [
+        "@maven//:org_junit_jupiter_junit_jupiter_engine",
+        "@maven//:org_junit_platform_junit_platform_console_standalone",
     ],
 )
 
 test_suite(
     name = "all_tests",
-    tests = [":scheduler_test"],
+    tests = [
+        ":scheduler_integration_test",
+        ":scheduler_unit_test",
+    ],
 )
 
+# ── OCI packaging ─────────────────────────────────────────────────────────────
 pkg_tar(
     name = "scheduler_layer",
     srcs = [":Scheduler_deploy.jar"],

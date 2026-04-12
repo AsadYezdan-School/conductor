@@ -1,0 +1,132 @@
+syntax = "proto3";
+
+package conductor.management;
+
+import "job_execution.proto";
+
+option java_multiple_files = true;
+option java_package = "com.github.asadyezdanschool.conductor.grpc.management";
+option java_outer_classname = "JobManagementProto";
+
+// ---------------------------------------------------------------------------
+// Shared sub-messages
+// ---------------------------------------------------------------------------
+
+// Full HTTP configuration — used in CreateJobRequest.
+message HttpJobConfig {
+  string url             = 1;
+  string method          = 2;
+  // JSON string; omit or leave empty for no payload
+  string payload         = 3;
+  // JSON string; omit or leave empty for no custom headers
+  string headers         = 4;
+  // Defaults to 30 on the server if 0
+  int32  timeout_seconds = 5;
+}
+
+// Partial HTTP configuration for edits — every field is optional.
+// Omitted fields carry forward their current value from the database.
+message HttpEditConfig {
+  optional string url             = 1;
+  optional string method          = 2;
+  optional string payload         = 3;
+  optional string headers         = 4;
+  optional int32  timeout_seconds = 5;
+}
+
+// ---------------------------------------------------------------------------
+// CreateJob
+// ---------------------------------------------------------------------------
+
+message CreateJobRequest {
+  string                          name     = 1;
+  // Standard 5-field POSIX cron expression, e.g. "*/5 * * * *"
+  string                          cron     = 2;
+  conductor.execution.JobType     job_type = 3;
+
+  oneof config {
+    HttpJobConfig http_config = 4;
+    // Future: ShellJobConfig shell_config = 5;
+    // Future: PythonJobConfig python_config = 6;
+  }
+}
+
+message CreateJobResponse {
+  string job_family_id     = 1;
+  string job_definition_id = 2;
+  int32  version           = 3;
+}
+
+// ---------------------------------------------------------------------------
+// EditJob — creates a new immutable version; previous version marked not-latest
+// ---------------------------------------------------------------------------
+
+message EditJobRequest {
+  string job_family_id   = 1;
+  optional string name   = 2;
+  // Standard 5-field POSIX cron expression
+  optional string cron   = 3;
+
+  oneof config {
+    HttpEditConfig http_config = 4;
+    // Future: ShellEditConfig shell_config = 5;
+  }
+}
+
+message EditJobResponse {
+  string job_family_id     = 1;
+  string job_definition_id = 2;
+  int32  version           = 3;
+}
+
+// ---------------------------------------------------------------------------
+// ParkJob / UnparkJob
+// ---------------------------------------------------------------------------
+
+message ParkJobRequest {
+  string job_family_id = 1;
+}
+
+message ParkJobResponse {
+  string job_family_id = 1;
+  bool   is_parked     = 2;
+}
+
+message UnparkJobRequest {
+  string job_family_id = 1;
+}
+
+message UnparkJobResponse {
+  string job_family_id = 1;
+  bool   is_parked     = 2;
+}
+
+// ---------------------------------------------------------------------------
+// Service
+// ---------------------------------------------------------------------------
+
+// JobManagementService is consumed exclusively by the Submitter REST service.
+// All job definition writes (create, edit, park, unpark) flow through here so
+// the scheduler remains the sole reader/writer of the database.
+//
+// Default port: 50051  (env SCHEDULER_MANAGEMENT_GRPC_PORT)
+//
+// Error codes:
+//   INVALID_ARGUMENT  — validation failure (→ HTTP 422)
+//   NOT_FOUND         — unknown job_family_id (→ HTTP 404)
+//   ALREADY_EXISTS    — park/unpark when already in that state (→ HTTP 409)
+//   INTERNAL          — unexpected server error (→ HTTP 500)
+service JobManagementService {
+  // Create a new job family at version 1.
+  rpc CreateJob(CreateJobRequest) returns (CreateJobResponse);
+
+  // Edit a job — inserts a new version and marks the previous one not-latest.
+  // Only supplied fields are changed; omitted fields carry forward.
+  rpc EditJob(EditJobRequest) returns (EditJobResponse);
+
+  // Park a job — scheduler stops firing it; existing in-flight runs complete.
+  rpc ParkJob(ParkJobRequest) returns (ParkJobResponse);
+
+  // Unpark a job — scheduler resumes firing it on its cron schedule.
+  rpc UnparkJob(UnparkJobRequest) returns (UnparkJobResponse);
+}

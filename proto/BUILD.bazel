@@ -1,0 +1,29 @@
+load("@rules_java//java:defs.bzl", "java_library")
+
+package(default_visibility = ["//visibility:public"])
+
+# Pre-compiled Java gRPC stubs generated from proto/job_execution.proto
+# and proto/job_management.proto via:
+#
+#   protoc \
+#     --proto_path=proto \
+#     --java_out=proto/gen/java \
+#     --plugin=protoc-gen-grpc-java=<plugin-binary> \
+#     --grpc-java_out=proto/gen/java \
+#     proto/job_execution.proto proto/job_management.proto
+#
+# To regenerate stubs after editing the .proto files, run:
+#   nix-shell -p protobuf --run "protoc ..."
+# (see proto/README.md for the full command)
+java_library(
+    name = "conductor_grpc_java",
+    srcs = glob(["gen/java/**/*.java"]),
+    deps = [
+        "@maven//:com_google_guava_guava",
+        "@maven//:com_google_protobuf_protobuf_java",
+        "@maven//:io_grpc_grpc_api",
+        "@maven//:io_grpc_grpc_protobuf",
+        "@maven//:io_grpc_grpc_stub",
+        "@maven//:javax_annotation_javax_annotation_api",
+    ],
+)
