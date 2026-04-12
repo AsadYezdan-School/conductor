@@ -9,11 +9,14 @@ import java.util.UUID;
 public record HttpRunDetails(
         UUID   jobRunId,
         UUID   jobDefinitionId,
+        UUID   jobFamilyId,
         String url,
         String method,
         /** JSON string; null if not set on the job definition. */
         String payload,
         /** JSON string; null if not set on the job definition. */
         String headers,
-        int    timeoutSeconds
+        int    timeoutSeconds,
+        int    attemptNumber,
+        int    maxRetries
 ) {}

@@ -67,6 +67,34 @@ public class EnqueueService {
      * @param firedAt           the instant at which the scheduler decided to fire this job
      * @param nextScheduledAt   the next future fire time (already computed by the loop)
      */
+    /**
+     * Persist and dispatch a retry run for a previously failed job run.
+     * Does not update job_schedules — that was done on the original enqueue.
+     *
+     * @param failedRunId   the run that just failed
+     * @param details       HTTP run details from the failed run (carries definitionId, familyId, jobType)
+     * @param attemptNumber the new attempt number
+     */
+    public void enqueueRetry(UUID failedRunId, com.github.asadyezdanschool.conductor.scheduler.model.HttpRunDetails details, int attemptNumber) {
+        try {
+            UUID retryRunId = repository.enqueueRetry(
+                    failedRunId, details.jobDefinitionId(), details.jobFamilyId(), attemptNumber);
+
+            SqsRunMessage message = new SqsRunMessage(retryRunId.toString(), "HTTP");
+            String jsonBody = mapper.writeValueAsString(message);
+
+            sqsClient.sendMessage(SendMessageRequest.builder()
+                    .queueUrl(queueUrl)
+                    .messageBody(jsonBody)
+                    .build());
+
+            log.info("Enqueued retry run: " + retryRunId
+                    + " (attempt " + attemptNumber + " for failed run " + failedRunId + ")");
+        } catch (Exception e) {
+            log.log(Level.SEVERE, "Failed to enqueue retry for run " + failedRunId, e);
+        }
+    }
+
     public void enqueueRun(CachedJob job, Instant firedAt, Instant nextScheduledAt) {
         try {
             enqueueSemaphore.acquire();

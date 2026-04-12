@@ -383,10 +383,13 @@ public class JobRepository {
 
     /**
      * Fetch the HTTP config for a run by joining job_runs → job_definitions → job_type_http_configs.
+     * Also returns attempt_number and max_retries so the worker can log and the scheduler can
+     * decide whether to enqueue a retry on failure.
      */
     public Optional<HttpRunDetails> getHttpRunDetails(UUID jobRunId) throws SQLException {
         String sql = """
-                SELECT jr.id, jd.id, c.url, c.method::text, c.payload::text, c.headers::text, c.timeout_seconds
+                SELECT jr.id, jd.id, jr.job_family_id, c.url, c.method::text, c.payload::text,
+                       c.headers::text, c.timeout_seconds, jr.attempt_number, jd.max_retries
                 FROM job_runs jr
                 JOIN job_definitions jd ON jd.id = jr.job_definition_id
                 JOIN job_type_http_configs c ON c.job_definition_id = jd.id
@@ -400,12 +403,66 @@ public class JobRepository {
                 return Optional.of(new HttpRunDetails(
                         (UUID) rs.getObject(1),
                         (UUID) rs.getObject(2),
-                        rs.getString(3),
+                        (UUID) rs.getObject(3),
                         rs.getString(4),
                         rs.getString(5),
                         rs.getString(6),
-                        rs.getInt(7)
+                        rs.getString(7),
+                        rs.getInt(8),
+                        rs.getInt(9),
+                        rs.getInt(10)
                 ));
+            }
+        }
+    }
+
+    /**
+     * Insert a new retry run row and a QUEUED event for it. Does NOT update job_schedules —
+     * that was already done when the original run was enqueued.
+     *
+     * @param failedRunId   the ID of the run that just failed (becomes parent_run_id)
+     * @param definitionId  job definition to execute
+     * @param familyId      job family
+     * @param attemptNumber the new attempt number (failed attempt + 1)
+     * @return the new run's UUID
+     */
+    public UUID enqueueRetry(UUID failedRunId, UUID definitionId, UUID familyId,
+                             int attemptNumber) throws SQLException {
+        String runSql = """
+                INSERT INTO job_runs (job_definition_id, job_family_id, status, scheduled_at,
+                                      attempt_number, parent_run_id)
+                VALUES (?, ?, 'QUEUED'::job_status, NOW(), ?, ?)
+                RETURNING id
+                """;
+        String eventSql = """
+                INSERT INTO job_run_events (job_run_id, status, source)
+                VALUES (?, 'QUEUED'::job_status, 'scheduler')
+                """;
+        try (Connection c = dataSource.getConnection()) {
+            c.setAutoCommit(false);
+            try {
+                UUID retryRunId;
+                try (PreparedStatement ps = c.prepareStatement(runSql)) {
+                    ps.setObject(1, definitionId);
+                    ps.setObject(2, familyId);
+                    ps.setInt(3, attemptNumber);
+                    ps.setObject(4, failedRunId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        rs.next();
+                        retryRunId = (UUID) rs.getObject(1);
+                    }
+                }
+                try (PreparedStatement ps = c.prepareStatement(eventSql)) {
+                    ps.setObject(1, retryRunId);
+                    ps.executeUpdate();
+                }
+                c.commit();
+                return retryRunId;
+            } catch (SQLException e) {
+                c.rollback();
+                throw e;
+            } finally {
+                c.setAutoCommit(true);
             }
         }
     }

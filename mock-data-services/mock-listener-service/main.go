@@ -14,12 +14,28 @@ func main() {
 	port := getEnv("MOCK_LISTENER_PORT", "8081")
 	statusCode := getEnvInt("RESPONSE_STATUS_CODE", 200)
 
+
+	failureCodes := []int{400, 403, 404, 500, 502, 503}
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		delaySecs := rand.Intn(10) + 1
-		msg := fmt.Sprintf("received %s %s — sleeping %ds, responding %d", r.Method, r.URL.Path, delaySecs, statusCode)
+
+		code := statusCode
+		intentional := rand.Intn(3) == 0
+		if intentional {
+			code = failureCodes[rand.Intn(len(failureCodes))]
+		}
+
+		var msg string
+		if intentional {
+			msg = fmt.Sprintf("intentional failure: received %s %s — sleeping %ds, responding %d", r.Method, r.URL.Path, delaySecs, code)
+		} else {
+			msg = fmt.Sprintf("received %s %s — sleeping %ds, responding %d", r.Method, r.URL.Path, delaySecs, code)
+		}
+
 		log.Print(msg)
 		time.Sleep(time.Duration(delaySecs) * time.Second)
-		w.WriteHeader(statusCode)
+		w.WriteHeader(code)
 		fmt.Fprintf(w, `{"message":%q}`, msg)
 	})
 

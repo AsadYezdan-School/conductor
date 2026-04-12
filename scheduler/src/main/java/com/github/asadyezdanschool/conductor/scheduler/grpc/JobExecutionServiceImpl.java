@@ -44,6 +44,8 @@ public class JobExecutionServiceImpl extends JobExecutionServiceGrpc.JobExecutio
                     .setPayload(details.payload() != null ? details.payload() : "")
                     .setHeaders(details.headers() != null ? details.headers() : "")
                     .setTimeoutSeconds(details.timeoutSeconds())
+                    .setAttemptNumber(details.attemptNumber())
+                    .setMaxRetries(details.maxRetries())
                     .build();
 
             observer.onNext(response);

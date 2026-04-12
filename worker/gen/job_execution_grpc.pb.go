@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.1
 // - protoc             v3.21.12
-// source: proto/job_execution.proto
+// source: job_execution.proto
 
 package execution
 
@@ -175,5 +175,5 @@ var JobExecutionService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "proto/job_execution.proto",
+	Metadata: "job_execution.proto",
 }

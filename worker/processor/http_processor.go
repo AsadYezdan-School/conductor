@@ -53,7 +53,8 @@ func (p *HTTPProcessor) ProcessRun(ctx context.Context, jobRunID string) bool {
 	}
 
 	// 2. Report RUNNING
-	log.Printf("Job run %s: running (%s %s)", jobRunID, details.Method, details.Url)
+	log.Printf("Job run %s: running (%s %s) — attempt %d/%d",
+		jobRunID, details.Method, details.Url, details.AttemptNumber, details.MaxRetries)
 	_, err = p.stub.ReportStatus(ctx, &pb.ReportStatusRequest{
 		JobRunId: jobRunID,
 		Status:   pb.JobStatus_RUNNING,
@@ -76,7 +77,7 @@ func (p *HTTPProcessor) ProcessRun(ctx context.Context, jobRunID string) bool {
 			message = fmt.Sprintf("non-2xx status: %d", statusCode)
 		}
 		log.Printf("Job run %s: executed with status FAILED (%s) in %dms — response: %s", jobRunID, message, durationMs, responseBody)
-		_, reportErr := p.stub.ReportStatus(ctx, &pb.ReportStatusRequest{
+		reportResp, reportErr := p.stub.ReportStatus(ctx, &pb.ReportStatusRequest{
 			JobRunId:       jobRunID,
 			Status:         pb.JobStatus_FAILED,
 			Message:        message,
@@ -86,8 +87,12 @@ func (p *HTTPProcessor) ProcessRun(ctx context.Context, jobRunID string) bool {
 		})
 		if reportErr != nil {
 			log.Printf("ReportStatus(FAILED) failed for run %s: %v", jobRunID, reportErr)
+		} else if reportResp.ShouldRetry {
+			log.Printf("Job run %s: scheduler has enqueued a retry", jobRunID)
+		} else {
+			log.Printf("Job run %s: no retries remaining", jobRunID)
 		}
-		return false
+		return true
 	}
 
 	// 4b. Succeeded
