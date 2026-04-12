@@ -16,10 +16,11 @@ func main() {
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		delaySecs := rand.Intn(10) + 1
-		log.Printf("received %s %s — sleeping %ds, responding %d", r.Method, r.URL.Path, delaySecs, statusCode)
+		msg := fmt.Sprintf("received %s %s — sleeping %ds, responding %d", r.Method, r.URL.Path, delaySecs, statusCode)
+		log.Print(msg)
 		time.Sleep(time.Duration(delaySecs) * time.Second)
 		w.WriteHeader(statusCode)
-		fmt.Fprintf(w, `{"status":%d}`, statusCode)
+		fmt.Fprintf(w, `{"message":%q}`, msg)
 	})
 
 	addr := ":" + port

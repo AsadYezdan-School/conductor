@@ -1,4 +1,4 @@
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeftIcon } from 'lucide-react';
 import { api } from '../api/client';
@@ -7,14 +7,10 @@ import type { RunEvent } from '../api/types';
 import { JobStatusBadge } from '../components/JobStatusBadge';
 import { RunEventTimeline } from '../components/RunEventTimeline';
 
-function fmtDuration(ms: number | null) {
-  if (ms === null) return null;
-  if (ms < 1000) return `${ms}ms`;
-  return `${(ms / 1000).toFixed(1)}s`;
-}
 
 export function RunDetailPage() {
   const { runId } = useParams<{ runId: string }>();
+  const navigate = useNavigate();
 
   const { data: events = [], isLoading, error } = useQuery({
     queryKey: ['events', runId],
@@ -31,12 +27,8 @@ export function RunDetailPage() {
   if (isLoading) return <div className="p-8 text-gray-500">Loading…</div>;
   if (error) return <div className="p-8 text-red-600">Failed to load run events.</div>;
 
-  const finalEvent = events.length > 0 ? events[events.length - 1] : null;
-  const firstEvent = events.length > 0 ? events[0] : null;
-
-  // Try to derive job family from events (not directly available here).
-  // We use browser history to go back.
-  const navigate = useNavigate();
+  const finalEvent = events.at(-1) ?? null;
+  const firstEvent = events.at(0) ?? null;
 
   return (
     <div className="min-h-screen bg-gray-50">
