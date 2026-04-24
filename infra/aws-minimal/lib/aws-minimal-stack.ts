@@ -244,7 +244,7 @@ export class AwsMinimalStack extends cdk.Stack {
     // pl-4fa04526 = com.amazonaws.global.cloudfront.origin-facing in eu-west-1
     const albSg = new ec2.SecurityGroup(this, 'AlbSg', {
       vpc,
-      description: 'Conductor ALB — accepts only CloudFront origin IPs',
+      description: 'Conductor ALB - accepts only CloudFront origin IPs',
       allowAllOutbound: true,
     });
     albSg.addIngressRule(
