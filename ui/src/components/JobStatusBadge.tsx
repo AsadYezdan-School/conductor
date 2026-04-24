@@ -1,5 +1,5 @@
 interface Props {
-  status: string | null | undefined;
+  status?: string | null | undefined;
   isParked?: boolean;
 }
 

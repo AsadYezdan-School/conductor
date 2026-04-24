@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { PlusIcon, PencilIcon, PauseIcon, PlayIcon, ArrowRightIcon } from 'lucide-react';
+import { PlusIcon, PauseIcon, PlayIcon, ArrowRightIcon } from 'lucide-react';
 import { api } from '../api/client';
 import { isTerminal } from '../api/status';
 import type { JobSummary } from '../api/types';
 import { JobStatusBadge } from '../components/JobStatusBadge';
 import { CronHelper } from '../components/CronHelper';
 import { JobForm } from '../components/JobForm';
+import { useAuth } from '../auth/AuthProvider';
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
@@ -28,6 +29,7 @@ export function JobListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
+  const { signOut } = useAuth();
 
   const { data: jobs = [], isLoading, error } = useQuery({
     queryKey: ['jobs'],
@@ -58,13 +60,22 @@ export function JobListPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b px-8 py-4 flex items-center justify-between">
         <h1 className="text-xl font-semibold text-gray-900">Conductor</h1>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="flex items-center gap-1.5 rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
-        >
-          <PlusIcon size={14} />
-          New Job
-        </button>
+        <div className="flex items-center gap-4">
+          <Link to="/analytics" className="text-sm text-gray-600 hover:text-gray-900">Analytics</Link>
+          <button
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-1.5 rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
+          >
+            <PlusIcon size={14} />
+            New Job
+          </button>
+          <button
+            onClick={() => signOut()}
+            className="text-sm text-gray-500 hover:text-gray-900"
+          >
+            Sign out
+          </button>
+        </div>
       </header>
 
       <main className="px-8 py-6">

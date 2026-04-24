@@ -81,3 +81,31 @@ export interface ParkStatusResponse {
   jobFamilyId: string;
   isParked: boolean;
 }
+
+export interface JobHealthStat {
+  name: string;
+  jobFamilyId: string;
+  cron: string;
+  isParked: boolean;
+  totalRuns: number;
+  succeeded: number;
+  failed: number;
+  successRatePct: number | null;
+  avgDurationMs: number | null;
+}
+
+export interface RunTrendBucket {
+  bucket: string;
+  totalRuns: number;
+  succeeded: number;
+  failed: number;
+  avgDurationMs: number | null;
+}
+
+export interface FailureModeStat {
+  name: string;
+  jobFamilyId: string;
+  httpStatusCode: number | null;
+  occurrences: number;
+  lastSeenAt: string | null;
+}

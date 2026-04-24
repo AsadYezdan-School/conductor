@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import { JobListPage } from './pages/JobListPage';
 import { JobDetailPage } from './pages/JobDetailPage';
 import { RunDetailPage } from './pages/RunDetailPage';
+import { AnalyticsPage } from './pages/AnalyticsPage';
 
 export default function App() {
   return (
@@ -9,6 +10,7 @@ export default function App() {
       <Route path="/" element={<JobListPage />} />
       <Route path="/jobs/:jobFamilyId" element={<JobDetailPage />} />
       <Route path="/runs/:runId" element={<RunDetailPage />} />
+      <Route path="/analytics" element={<AnalyticsPage />} />
     </Routes>
   );
 }

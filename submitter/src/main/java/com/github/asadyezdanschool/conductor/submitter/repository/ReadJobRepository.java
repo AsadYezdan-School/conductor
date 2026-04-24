@@ -1,10 +1,13 @@
 package com.github.asadyezdanschool.conductor.submitter.repository;
 
 import com.github.asadyezdanschool.conductor.submitter.exception.NotFoundException;
+import com.github.asadyezdanschool.conductor.submitter.model.FailureModeStat;
 import com.github.asadyezdanschool.conductor.submitter.model.JobDetail;
+import com.github.asadyezdanschool.conductor.submitter.model.JobHealthStat;
 import com.github.asadyezdanschool.conductor.submitter.model.JobRunSummary;
 import com.github.asadyezdanschool.conductor.submitter.model.JobSummary;
 import com.github.asadyezdanschool.conductor.submitter.model.RunEvent;
+import com.github.asadyezdanschool.conductor.submitter.model.RunTrendBucket;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -184,6 +187,124 @@ public class ReadJobRepository {
         } catch (SQLException e) {
             log.severe("Failed to list events for run " + runId + ": " + e.getMessage());
             throw new RuntimeException("Failed to list run events", e);
+        }
+        return results;
+    }
+
+    /** Job health overview: success rate and avg duration per job over the last 7 days. */
+    public List<JobHealthStat> getJobHealthStats() {
+        String sql =
+                "SELECT jd.name, jd.job_family_id::text, jd.cron, jd.is_parked, " +
+                "  COUNT(jr.id) AS total_runs, " +
+                "  COUNT(jr.id) FILTER (WHERE jr.status = 'SUCCEEDED') AS succeeded, " +
+                "  COUNT(jr.id) FILTER (WHERE jr.status = 'FAILED') AS failed, " +
+                "  ROUND(100.0 * COUNT(jr.id) FILTER (WHERE jr.status = 'SUCCEEDED') " +
+                "    / NULLIF(COUNT(jr.id), 0), 1) AS success_rate_pct, " +
+                "  ROUND(AVG(jr.duration_ms) FILTER (WHERE jr.status = 'SUCCEEDED'))::bigint AS avg_duration_ms " +
+                "FROM job_definitions jd " +
+                "LEFT JOIN job_runs jr ON jr.job_family_id = jd.job_family_id " +
+                "  AND jr.scheduled_at >= NOW() - INTERVAL '7 days' " +
+                "WHERE jd.is_latest = TRUE AND jd.is_deleted = FALSE " +
+                "GROUP BY jd.name, jd.job_family_id, jd.cron, jd.is_parked " +
+                "ORDER BY total_runs DESC";
+
+        List<JobHealthStat> results = new ArrayList<>();
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                double successRate = rs.getDouble("success_rate_pct");
+                boolean successRateNull = rs.wasNull();
+                long avgDuration = rs.getLong("avg_duration_ms");
+                boolean avgDurationNull = rs.wasNull();
+                results.add(new JobHealthStat(
+                        rs.getString("name"),
+                        rs.getObject("job_family_id").toString(),
+                        rs.getString("cron"),
+                        rs.getBoolean("is_parked"),
+                        rs.getLong("total_runs"),
+                        rs.getLong("succeeded"),
+                        rs.getLong("failed"),
+                        successRateNull ? null : successRate,
+                        avgDurationNull ? null : avgDuration
+                ));
+            }
+        } catch (SQLException e) {
+            log.severe("Failed to get job health stats: " + e.getMessage());
+            throw new RuntimeException("Failed to get job health stats", e);
+        }
+        return results;
+    }
+
+    /** Hourly run volume and status counts for the last 24 hours. */
+    public List<RunTrendBucket> getRunTrend() {
+        String sql =
+                "SELECT DATE_TRUNC('hour', jr.scheduled_at) AS bucket, " +
+                "  COUNT(*) AS total_runs, " +
+                "  COUNT(*) FILTER (WHERE jr.status = 'SUCCEEDED') AS succeeded, " +
+                "  COUNT(*) FILTER (WHERE jr.status = 'FAILED') AS failed, " +
+                "  ROUND(AVG(jr.duration_ms))::bigint AS avg_duration_ms " +
+                "FROM job_runs jr " +
+                "JOIN job_definitions jd ON jr.job_definition_id = jd.id " +
+                "WHERE jr.scheduled_at >= NOW() - INTERVAL '24 hours' " +
+                "GROUP BY DATE_TRUNC('hour', jr.scheduled_at) " +
+                "ORDER BY bucket ASC";
+
+        List<RunTrendBucket> results = new ArrayList<>();
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                long avgDuration = rs.getLong("avg_duration_ms");
+                boolean avgNull = rs.wasNull();
+                results.add(new RunTrendBucket(
+                        tsToString(rs.getTimestamp("bucket")),
+                        rs.getLong("total_runs"),
+                        rs.getLong("succeeded"),
+                        rs.getLong("failed"),
+                        avgNull ? null : avgDuration
+                ));
+            }
+        } catch (SQLException e) {
+            log.severe("Failed to get run trend: " + e.getMessage());
+            throw new RuntimeException("Failed to get run trend", e);
+        }
+        return results;
+    }
+
+    /** Top 20 failure modes by HTTP status code across jobs in the last 7 days. */
+    public List<FailureModeStat> getFailureModes() {
+        String sql =
+                "SELECT jd.name, jd.job_family_id::text, jre.http_status_code, " +
+                "  COUNT(*) AS occurrences, " +
+                "  MAX(jre.occurred_at) AS last_seen_at " +
+                "FROM job_run_events jre " +
+                "JOIN job_runs jr ON jre.job_run_id = jr.id " +
+                "JOIN job_definitions jd ON jr.job_definition_id = jd.id " +
+                "WHERE jre.status = 'FAILED' " +
+                "  AND jre.occurred_at >= NOW() - INTERVAL '7 days' " +
+                "GROUP BY jd.name, jd.job_family_id, jre.http_status_code " +
+                "ORDER BY occurrences DESC " +
+                "LIMIT 20";
+
+        List<FailureModeStat> results = new ArrayList<>();
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                int httpCode = rs.getInt("http_status_code");
+                boolean httpNull = rs.wasNull();
+                results.add(new FailureModeStat(
+                        rs.getString("name"),
+                        rs.getObject("job_family_id").toString(),
+                        httpNull ? null : httpCode,
+                        rs.getLong("occurrences"),
+                        tsToString(rs.getTimestamp("last_seen_at"))
+                ));
+            }
+        } catch (SQLException e) {
+            log.severe("Failed to get failure modes: " + e.getMessage());
+            throw new RuntimeException("Failed to get failure modes", e);
         }
         return results;
     }

@@ -3,6 +3,7 @@ package com.github.asadyezdanschool.conductor.submitter;
 import com.github.asadyezdanschool.conductor.submitter.exception.ExceptionMappers;
 import com.github.asadyezdanschool.conductor.submitter.grpc.SchedulerGrpcClient;
 import com.github.asadyezdanschool.conductor.submitter.repository.ReadJobRepository;
+import com.github.asadyezdanschool.conductor.submitter.resource.AnalyticsResource;
 import com.github.asadyezdanschool.conductor.submitter.resource.CorsFilter;
 import com.github.asadyezdanschool.conductor.submitter.resource.JobResource;
 import com.github.asadyezdanschool.conductor.submitter.resource.RunResource;
@@ -74,13 +75,21 @@ public class AppModule {
 
     @Provides
     @Singleton
+    public AnalyticsResource provideAnalyticsResource(ReadJobRepository readRepo) {
+        return new AnalyticsResource(readRepo);
+    }
+
+    @Provides
+    @Singleton
     public ResourceConfig provideResourceConfig(
             JobResource jobResource,
             RunResource runResource,
+            AnalyticsResource analyticsResource,
             ExceptionMappers exceptionMappers) {
         ResourceConfig cfg = new ResourceConfig();
         cfg.register(jobResource);
         cfg.register(runResource);
+        cfg.register(analyticsResource);
         cfg.register(exceptionMappers);
         cfg.register(CorsFilter.class);
         cfg.register(JacksonFeature.class);

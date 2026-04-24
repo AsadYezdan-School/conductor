@@ -1,19 +1,37 @@
+import { fetchAuthSession } from 'aws-amplify/auth';
 import type {
   EditJobRequest,
+  FailureModeStat,
   JobCreationRequest,
   JobCreationResponse,
   JobDetail,
+  JobHealthStat,
   JobRunSummary,
   JobSummary,
   ParkStatusResponse,
   RunEvent,
+  RunTrendBucket,
 } from './types';
 
 const BASE = '/api';
 
+async function getToken(): Promise<string | undefined> {
+  try {
+    const session = await fetchAuthSession();
+    return session.tokens?.idToken?.toString();
+  } catch {
+    return undefined;
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = await getToken();
   const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...init?.headers },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...init?.headers,
+    },
     ...init,
   });
   if (!res.ok) {
@@ -54,5 +72,17 @@ export const api = {
 
   unparkJob(jobFamilyId: string): Promise<ParkStatusResponse> {
     return request(`/jobs/${jobFamilyId}/unpark`, { method: 'POST' });
+  },
+
+  getJobHealth(): Promise<JobHealthStat[]> {
+    return request('/analytics/job-health');
+  },
+
+  getRunTrend(): Promise<RunTrendBucket[]> {
+    return request('/analytics/run-trend');
+  },
+
+  getFailureModes(): Promise<FailureModeStat[]> {
+    return request('/analytics/failure-modes');
   },
 };
