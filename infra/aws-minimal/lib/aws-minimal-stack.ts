@@ -190,7 +190,21 @@ export class AwsMinimalStack extends cdk.Stack {
       cpu: 512,
       memoryLimitMiB: 1024,
     });
-    schedulerTaskDef.addContainer('SchedulerContainer', {
+    const schedulerMigrationContainer = schedulerTaskDef.addContainer('MigrationInit', {
+      image: ecs.ContainerImage.fromRegistry('public.ecr.aws/a9s2p1s8/conductor/liquibase-migrations:latest'),
+      essential: false,
+      environment: {
+        LIQUIBASE_COMMAND_URL: `jdbc:postgresql://${proxy.endpoint}:5432/conductor?sslmode=disable`,
+        LIQUIBASE_COMMAND_CHANGELOG_FILE: 'db.changelog-master.yaml',
+      },
+      secrets: {
+        LIQUIBASE_COMMAND_USERNAME: ecs.Secret.fromSecretsManager(database.secret!, 'username'),
+        LIQUIBASE_COMMAND_PASSWORD: ecs.Secret.fromSecretsManager(database.secret!, 'password'),
+      },
+      logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'conductor-migrations-init' }),
+    });
+
+    const schedulerContainer = schedulerTaskDef.addContainer('SchedulerContainer', {
       image: ecs.ContainerImage.fromRegistry(`public.ecr.aws/a9s2p1s8/conductor/scheduler:${imageTag}`),
       portMappings: [
         { containerPort: 50051, name: 'scheduler-management' },
@@ -202,6 +216,10 @@ export class AwsMinimalStack extends cdk.Stack {
         DB_WRITER_URL: `jdbc:postgresql://${proxy.endpoint}:5432/conductor?sslmode=disable`,
       },
       secrets: dbSecrets,
+    });
+    schedulerContainer.addContainerDependencies({
+      container: schedulerMigrationContainer,
+      condition: ecs.ContainerDependencyCondition.SUCCESS,
     });
     const schedulerSg = new ec2.SecurityGroup(this, 'SchedulerSg', {
       vpc,
@@ -266,6 +284,24 @@ export class AwsMinimalStack extends cdk.Stack {
       'submitter',
       albSg,
     );
+
+    const submitterMigrationContainer = submitterService.taskDefinition.addContainer('MigrationInit', {
+      image: ecs.ContainerImage.fromRegistry('public.ecr.aws/a9s2p1s8/conductor/liquibase-migrations:latest'),
+      essential: false,
+      environment: {
+        LIQUIBASE_COMMAND_URL: `jdbc:postgresql://${proxy.endpoint}:5432/conductor?sslmode=disable`,
+        LIQUIBASE_COMMAND_CHANGELOG_FILE: 'db.changelog-master.yaml',
+      },
+      secrets: {
+        LIQUIBASE_COMMAND_USERNAME: ecs.Secret.fromSecretsManager(database.secret!, 'username'),
+        LIQUIBASE_COMMAND_PASSWORD: ecs.Secret.fromSecretsManager(database.secret!, 'password'),
+      },
+      logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'conductor-migrations-init' }),
+    });
+    submitterService.taskDefinition.findContainer('SubmitterContainer')!.addContainerDependencies({
+      container: submitterMigrationContainer,
+      condition: ecs.ContainerDependencyCondition.SUCCESS,
+    });
 
     const { service: mockListenerService, sg: mockListenerSg } = this.createFargateService(
       cluster, vpc, 'MockListenerService', 'conductor-mock-listener',
