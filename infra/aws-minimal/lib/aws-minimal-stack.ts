@@ -70,15 +70,6 @@ export class AwsMinimalStack extends cdk.Stack {
       deletionProtection: false,
     });
 
-    // --- Migrations infrastructure ---
-    const migrationSg = new ec2.SecurityGroup(this, 'MigrationSg', {
-      vpc,
-      description: 'Security group for Liquibase migration task',
-      allowAllOutbound: true,
-    });
-
-    dbSg.addIngressRule(migrationSg, ec2.Port.tcp(5432), 'Allow migration task');
-
     // --- RDS Proxy security group ---
     const proxySg = new ec2.SecurityGroup(this, 'ProxySg', {
       vpc,
@@ -158,7 +149,20 @@ export class AwsMinimalStack extends cdk.Stack {
       cpu: 512,
       memoryLimitMiB: 1024,
     });
-    schedulerTaskDef.addContainer('SchedulerContainer', {
+    const migrationInit = schedulerTaskDef.addContainer('MigrationInit', {
+      image: ecs.ContainerImage.fromRegistry('public.ecr.aws/a9s2p1s8/conductor/liquibase-migrations:latest'),
+      essential: false,
+      environment: {
+        LIQUIBASE_COMMAND_URL: `jdbc:postgresql://${proxy.endpoint}:5432/conductor?sslmode=disable`,
+        LIQUIBASE_COMMAND_CHANGELOG_FILE: 'db.changelog-master.yaml',
+      },
+      secrets: {
+        LIQUIBASE_COMMAND_USERNAME: ecs.Secret.fromSecretsManager(database.secret!, 'username'),
+        LIQUIBASE_COMMAND_PASSWORD: ecs.Secret.fromSecretsManager(database.secret!, 'password'),
+      },
+      logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'conductor-migrations' }),
+    });
+    const schedulerContainer = schedulerTaskDef.addContainer('SchedulerContainer', {
       image: ecs.ContainerImage.fromRegistry(`public.ecr.aws/a9s2p1s8/conductor/scheduler:${imageTag}`),
       portMappings: [
         { containerPort: 50051, name: 'scheduler-management' },
@@ -170,6 +174,10 @@ export class AwsMinimalStack extends cdk.Stack {
         DB_WRITER_URL: `jdbc:postgresql://${proxy.endpoint}:5432/conductor?sslmode=disable`,
       },
       secrets: dbSecrets,
+    });
+    schedulerContainer.addContainerDependencies({
+      container: migrationInit,
+      condition: ecs.ContainerDependencyCondition.SUCCESS,
     });
     const schedulerSg = new ec2.SecurityGroup(this, 'SchedulerSg', {
       vpc,
@@ -289,31 +297,6 @@ export class AwsMinimalStack extends cdk.Stack {
 
     new cdk.CfnOutput(this, 'RdsProxyEndpoint',  { value: proxy.endpoint });
     new cdk.CfnOutput(this, 'RdsReaderEndpoint', { value: readerEndpoint.attrEndpoint });
-
-    // Migration task definition (one-off, no ECS Service)
-    const migrationTaskDef = new ecs.FargateTaskDefinition(this, 'MigrationTaskDef', {
-      cpu: 256,
-      memoryLimitMiB: 512,
-    });
-    database.secret!.grantRead(migrationTaskDef.taskRole);
-
-    migrationTaskDef.addContainer('MigrationContainer', {
-      image: ecs.ContainerImage.fromRegistry('public.ecr.aws/a9s2p1s8/conductor/liquibase-migrations:latest'),
-      environment: {
-        LIQUIBASE_COMMAND_URL: `jdbc:postgresql://${database.dbInstanceEndpointAddress}:5432/conductor`,
-        LIQUIBASE_COMMAND_CHANGELOG_FILE: 'db.changelog-master.yaml',
-      },
-      secrets: {
-        LIQUIBASE_COMMAND_USERNAME: ecs.Secret.fromSecretsManager(database.secret!, 'username'),
-        LIQUIBASE_COMMAND_PASSWORD: ecs.Secret.fromSecretsManager(database.secret!, 'password'),
-      },
-      logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'conductor-migrations' }),
-      essential: true,
-    });
-
-    new cdk.CfnOutput(this, 'MigrationTaskDefArn',  { value: migrationTaskDef.taskDefinitionArn });
-    new cdk.CfnOutput(this, 'MigrationSgId',        { value: migrationSg.securityGroupId });
-    new cdk.CfnOutput(this, 'PublicSubnetId',        { value: vpc.publicSubnets[0].subnetId });
 
     // --- Bastion host ---
     const bastionSg = new ec2.SecurityGroup(this, 'BastionSg', {
