@@ -153,7 +153,7 @@ export class AwsMinimalStack extends cdk.Stack {
       image: ecs.ContainerImage.fromRegistry(`public.ecr.aws/a9s2p1s8/conductor/liquibase-migrations:${imageTag}`),
       essential: false,
       environment: {
-        LIQUIBASE_COMMAND_URL: `jdbc:postgresql://${proxy.endpoint}:5432/conductor?sslmode=disable`,
+        LIQUIBASE_COMMAND_URL: `jdbc:postgresql://${database.dbInstanceEndpointAddress}:5432/conductor`,
         LIQUIBASE_COMMAND_CHANGELOG_FILE: 'db.changelog-master.yaml',
       },
       secrets: {
@@ -256,8 +256,10 @@ export class AwsMinimalStack extends cdk.Stack {
     // Grant secret read — only scheduler reads the DB directly
     database.secret!.grantRead(schedulerService.taskDefinition.taskRole);
 
-    // Allow scheduler SG to reach the proxy
+    // Allow scheduler SG to reach the proxy (main scheduler container)
     proxySg.addIngressRule(schedulerSg, ec2.Port.tcp(5432), 'Scheduler to proxy');
+    // Allow scheduler SG to reach RDS directly (migration init container bypasses the proxy)
+    dbSg.addIngressRule(schedulerSg, ec2.Port.tcp(5432), 'Scheduler migration init to RDS');
 
     // Allow submitter and worker to reach scheduler gRPC ports
     schedulerSg.addIngressRule(submitterSg, ec2.Port.tcp(50051), 'Submitter to scheduler management gRPC');
