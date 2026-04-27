@@ -150,7 +150,7 @@ export class AwsMinimalStack extends cdk.Stack {
       memoryLimitMiB: 1024,
     });
     const migrationInit = schedulerTaskDef.addContainer('MigrationInit', {
-      image: ecs.ContainerImage.fromRegistry('public.ecr.aws/a9s2p1s8/conductor/liquibase-migrations:latest'),
+      image: ecs.ContainerImage.fromRegistry(`public.ecr.aws/a9s2p1s8/conductor/liquibase-migrations:${imageTag}`),
       essential: false,
       environment: {
         LIQUIBASE_COMMAND_URL: `jdbc:postgresql://${proxy.endpoint}:5432/conductor?sslmode=disable`,
