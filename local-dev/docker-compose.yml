@@ -1,4 +1,6 @@
 services:
+  # ── Infrastructure ────────────────────────────────────────────────────────────
+
   postgres:
     image: postgres:17.6
     container_name: conductor-postgres
@@ -31,6 +33,111 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+
+  # ── Schema migrations (one-shot init container) ───────────────────────────────
+
+  migrations:
+    image: conductor/liquibase-migrations:dummy
+    container_name: conductor-migrations
+    restart: "no"
+    environment:
+      LIQUIBASE_COMMAND_URL: "jdbc:postgresql://postgres:5432/conductor?sslmode=disable"
+      LIQUIBASE_COMMAND_USERNAME: conductor
+      LIQUIBASE_COMMAND_PASSWORD: conductor
+      LIQUIBASE_COMMAND_CHANGELOG_FILE: db.changelog-master.yaml
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── Backend services ──────────────────────────────────────────────────────────
+
+  submitter:
+    image: conductor/submitter:dummy
+    container_name: conductor-submitter
+    ports:
+      - "8080:8080"
+    environment:
+      DB_WRITER_URL: "jdbc:postgresql://postgres:5432/conductor?sslmode=disable"
+      DB_USERNAME: conductor
+      DB_PASSWORD: conductor
+      SCHEDULER_GRPC_ADDRESS: "scheduler:50051"
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+
+  scheduler:
+    image: conductor/scheduler:dummy
+    container_name: conductor-scheduler
+    ports:
+      - "50051:50051"
+      - "50052:50052"
+    environment:
+      DB_WRITER_URL: "jdbc:postgresql://postgres:5432/conductor?sslmode=disable"
+      DB_USERNAME: conductor
+      DB_PASSWORD: conductor
+      SQS_QUEUE_URL: "http://elasticmq:9324/000000000000/conductor-jobs"
+      AWS_ENDPOINT_URL: "http://elasticmq:9324"
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
+      AWS_REGION: us-east-1
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+      elasticmq:
+        condition: service_healthy
+
+  worker:
+    image: conductor/worker:dummy
+    container_name: conductor-worker
+    environment:
+      SQS_QUEUE_URL: "http://elasticmq:9324/000000000000/conductor-jobs"
+      AWS_ENDPOINT_URL_SQS: "http://elasticmq:9324"
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
+      AWS_REGION: us-east-1
+      SCHEDULER_GRPC_ADDRESS: "scheduler:50052"
+    depends_on:
+      elasticmq:
+        condition: service_healthy
+      scheduler:
+        condition: service_started
+
+  # ── Mock services ─────────────────────────────────────────────────────────────
+
+  mock-listener:
+    image: conductor/mock-listener-service:dummy
+    container_name: conductor-mock-listener
+    ports:
+      - "8081:8080"
+    environment:
+      MOCK_LISTENER_PORT: "8080"
+      RESPONSE_STATUS_CODE: "200"
+      RESPONSE_DELAY_MS: "200"
+
+  mock-data-service:
+    image: conductor/mock-data-service:dummy
+    container_name: conductor-mock-data-service
+    environment:
+      SUBMITTER_URL: "http://submitter:8080"
+      MOCK_LISTENER_URL: "http://mock-listener:8080"
+      NUM_JOBS: "20"
+      SUBMIT_INTERVAL_SECONDS: "5"
+    depends_on:
+      submitter:
+        condition: service_started
+      mock-listener:
+        condition: service_started
+
+  # ── UI (nginx serving built React app, proxying /api → submitter) ─────────────
+
+  ui:
+    image: conductor/ui:local
+    container_name: conductor-ui
+    ports:
+      - "3000:80"
+    depends_on:
+      submitter:
+        condition: service_started
 
 volumes:
   conductor-pg-data:
