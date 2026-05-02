@@ -209,4 +209,4 @@ Verification
 1. Backend: Run bazel build //submitter:Submitter — should compile cleanly with no changes to BUILD.bazel.
 2. REST: curl http://localhost:8080/analytics/job-health | jq . — returns array of job health stats.
 3. Frontend: cd ui && npm install && npm run dev — dev server starts; navigate to /analytics and verify both charts render.
-4. SQL correctness: Each query should return results when there is run history; empty arrays are valid when there are no runs.
+4. SQL correctness: Each query should return results when there is run history; empty arrays are valid when there are no runs. 
