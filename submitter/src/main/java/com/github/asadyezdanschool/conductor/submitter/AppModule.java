@@ -5,6 +5,7 @@ import com.github.asadyezdanschool.conductor.submitter.grpc.SchedulerGrpcClient;
 import com.github.asadyezdanschool.conductor.submitter.repository.ReadJobRepository;
 import com.github.asadyezdanschool.conductor.submitter.resource.AnalyticsResource;
 import com.github.asadyezdanschool.conductor.submitter.resource.CorsFilter;
+import com.github.asadyezdanschool.conductor.submitter.resource.HealthResource;
 import com.github.asadyezdanschool.conductor.submitter.resource.JobResource;
 import com.github.asadyezdanschool.conductor.submitter.resource.RunResource;
 import com.github.asadyezdanschool.conductor.submitter.service.JobService;
@@ -43,9 +44,11 @@ public class AppModule {
         config.setPassword(requireEnv("DB_PASSWORD"));
         config.setMaximumPoolSize(10);
         config.setMinimumIdle(2);
-        config.setConnectionTimeout(10_000);
+        config.setConnectionTimeout(30_000);
         config.setIdleTimeout(600_000);
         config.setMaxLifetime(1_800_000);
+        // Prevent queries from hanging indefinitely if the proxy drops the TCP connection
+        config.addDataSourceProperty("socketTimeout", "30");
         return new HikariDataSource(config);
     }
 
@@ -90,6 +93,7 @@ public class AppModule {
         cfg.register(jobResource);
         cfg.register(runResource);
         cfg.register(analyticsResource);
+        cfg.register(new HealthResource());
         cfg.register(exceptionMappers);
         cfg.register(CorsFilter.class);
         cfg.register(JacksonFeature.class);

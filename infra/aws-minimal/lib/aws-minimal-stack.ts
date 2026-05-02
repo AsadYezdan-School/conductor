@@ -340,7 +340,7 @@ export class AwsMinimalStack extends cdk.Stack {
         containerPort: 8080,
       })],
       healthCheck: {
-        path: '/jobs',
+        path: '/health',
         healthyHttpCodes: '200',
         interval: cdk.Duration.seconds(30),
         healthyThresholdCount: 2,
