@@ -67,7 +67,6 @@ export class AwsMinimalStack extends cdk.Stack {
       securityGroups: [dbSg],
       databaseName: 'conductor',
       allocatedStorage: 20,
-      maxAllocatedStorage: 20,
       multiAz: false,
       publiclyAccessible: false,
       storageType: rds.StorageType.GP3,
@@ -169,7 +168,12 @@ export class AwsMinimalStack extends cdk.Stack {
       preventUserExistenceErrors: true,
     });
 
-    const sqsQueueUrl = 'https://sqs.eu-west-1.amazonaws.com/378849626815/conductor-jobs';
+    const jobsQueue = new sqs.Queue(this, 'JobsQueue', {
+      queueName: 'conductor-jobs',
+      visibilityTimeout: cdk.Duration.seconds(30),
+      retentionPeriod: cdk.Duration.days(1),
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
 
     const dbSecrets = {
       DB_USERNAME: ecs.Secret.fromSecretsManager(database.secret!, 'username'),
@@ -203,7 +207,7 @@ export class AwsMinimalStack extends cdk.Stack {
       ],
       logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'conductor-scheduler' }),
       environment: {
-        SQS_QUEUE_URL: sqsQueueUrl,
+        SQS_QUEUE_URL: jobsQueue.queueUrl,
         DB_WRITER_URL: `jdbc:postgresql://${proxy.endpoint}:5432/conductor?sslmode=disable`,
       },
       secrets: dbSecrets,
@@ -217,8 +221,6 @@ export class AwsMinimalStack extends cdk.Stack {
       description: 'Security group for conductor-scheduler',
       allowAllOutbound: true,
     });
-    schedulerSg.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(50051), 'gRPC management');
-    schedulerSg.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(50052), 'gRPC execution');
     const schedulerService = new ecs.FargateService(this, 'SchedulerService', {
       cluster,
       taskDefinition: schedulerTaskDef,
@@ -242,7 +244,7 @@ export class AwsMinimalStack extends cdk.Stack {
       cluster, vpc, 'Worker', 'conductor-worker',
       `public.ecr.aws/a9s2p1s8/conductor/worker:${imageTag}`,
       {
-        SQS_QUEUE_URL: sqsQueueUrl,
+        SQS_QUEUE_URL: jobsQueue.queueUrl,
         SCHEDULER_GRPC_ADDRESS: 'scheduler-exec.conductor.local:50052',
       },
       {},
@@ -275,24 +277,6 @@ export class AwsMinimalStack extends cdk.Stack {
       'submitter',
       albSg,
     );
-
-    const submitterMigrationContainer = submitterService.taskDefinition.addContainer('MigrationInit', {
-      image: ecs.ContainerImage.fromRegistry('public.ecr.aws/a9s2p1s8/conductor/liquibase-migrations:latest'),
-      essential: false,
-      environment: {
-        LIQUIBASE_COMMAND_URL: `jdbc:postgresql://${proxy.endpoint}:5432/conductor?sslmode=disable`,
-        LIQUIBASE_COMMAND_CHANGELOG_FILE: 'db.changelog-master.yaml',
-      },
-      secrets: {
-        LIQUIBASE_COMMAND_USERNAME: ecs.Secret.fromSecretsManager(database.secret!, 'username'),
-        LIQUIBASE_COMMAND_PASSWORD: ecs.Secret.fromSecretsManager(database.secret!, 'password'),
-      },
-      logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'conductor-migrations-init' }),
-    });
-    submitterService.taskDefinition.findContainer('SubmitterContainer')!.addContainerDependencies({
-      container: submitterMigrationContainer,
-      condition: ecs.ContainerDependencyCondition.SUCCESS,
-    });
 
     const { service: mockListenerService, sg: mockListenerSg } = this.createFargateService(
       cluster, vpc, 'MockListenerService', 'conductor-mock-listener',
@@ -365,13 +349,6 @@ export class AwsMinimalStack extends cdk.Stack {
       },
       conditions: [elbv2.ListenerCondition.pathPatterns(['/*'])],
       priority: 10,
-    });
-
-    const jobsQueue = new sqs.Queue(this, 'JobsQueue', {
-      queueName: 'conductor-jobs',
-      visibilityTimeout: cdk.Duration.seconds(30),
-      retentionPeriod: cdk.Duration.days(1),
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
     jobsQueue.grantSendMessages(schedulerService.taskDefinition.taskRole);
