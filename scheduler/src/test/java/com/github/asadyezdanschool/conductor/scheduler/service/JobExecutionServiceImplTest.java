@@ -19,12 +19,14 @@ import static org.mockito.Mockito.*;
 class JobExecutionServiceImplTest {
 
     private JobRepository              mockRepo;
+    private EnqueueService             mockEnqueue;
     private JobExecutionServiceImpl    service;
 
     @BeforeEach
     void setUp() {
-        mockRepo = mock(JobRepository.class);
-        service  = new JobExecutionServiceImpl(mockRepo);
+        mockRepo    = mock(JobRepository.class);
+        mockEnqueue = mock(EnqueueService.class);
+        service     = new JobExecutionServiceImpl(mockRepo, mockEnqueue);
     }
 
     // ── getHttpRunDetails ─────────────────────────────────────────────────────
@@ -80,9 +82,9 @@ class JobExecutionServiceImplTest {
 
     private HttpRunDetails sampleDetails() {
         return new HttpRunDetails(
-                UUID.randomUUID(), UUID.randomUUID(),
+                UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
                 "http://example.com/hook", "POST",
-                null, null, 30
+                null, null, 30, 1, 3
         );
     }
 

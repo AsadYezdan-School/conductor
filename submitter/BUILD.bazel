@@ -15,8 +15,6 @@ java_plugin(
 )
 
 # ── Main library ──────────────────────────────────────────────────────────────
-# Note: org_postgresql_postgresql removed — submitter no longer holds a DB connection.
-# All DB writes go through the scheduler's gRPC JobManagementService.
 java_library(
     name = "submitter_lib",
     srcs = glob(["src/main/java/com/github/asadyezdanschool/conductor/submitter/**/*.java"]),
@@ -29,6 +27,7 @@ java_library(
         "@maven//:com_fasterxml_jackson_module_jackson_module_parameter_names",
         "@maven//:com_google_dagger_dagger",
         "@maven//:com_google_protobuf_protobuf_java",
+        "@maven//:com_zaxxer_HikariCP",
         "@maven//:io_grpc_grpc_api",
         "@maven//:io_grpc_grpc_netty_shaded",
         "@maven//:io_grpc_grpc_stub",
@@ -39,6 +38,7 @@ java_library(
         "@maven//:org_glassfish_jersey_core_jersey_server",
         "@maven//:org_glassfish_jersey_inject_jersey_hk2",
         "@maven//:org_glassfish_jersey_media_jersey_media_json_jackson",
+        "@maven//:org_postgresql_postgresql",
     ],
 )
 

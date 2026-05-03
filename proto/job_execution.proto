@@ -48,6 +48,10 @@ message GetHttpRunDetailsResponse {
   // JSON string; empty if not set on the job definition
   string headers           = 6;
   int32  timeout_seconds   = 7;
+  // Which attempt this is (1 = first, 2 = first retry, etc.)
+  int32  attempt_number    = 8;
+  // Maximum number of attempts allowed for this job
+  int32  max_retries       = 9;
 }
 
 // ---------------------------------------------------------------------------
@@ -69,6 +73,8 @@ message ReportStatusRequest {
 
 message ReportStatusResponse {
   bool acknowledged = 1;
+  // True if the scheduler has enqueued a retry run; worker should always delete the SQS message.
+  bool should_retry = 2;
 }
 
 // ---------------------------------------------------------------------------

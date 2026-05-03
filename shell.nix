@@ -13,6 +13,8 @@ pkgs.mkShell {
     liquibase        # run DB migrations against local postgres
     postgresql_17    # provides pg_isready + psql client
     curl             # used in setup.sh health checks
+    tmux             # local-start-all multi-service session
+    nodejs           # npm run dev for UI
   ];
 
   shellHook = ''
@@ -68,6 +70,52 @@ pkgs.mkShell {
       cd "$REPO_ROOT" && bazelisk run //mock-data-services/mock-data-service:MockDataService
     }
 
+    local-run-ui() {
+      cd "$REPO_ROOT/ui" && npm run dev
+    }
+
+    local-start-all() {
+      SESSION="conductor"
+
+      echo "==> Starting infrastructure (postgres + elasticmq)..."
+      local-up || { echo "Infrastructure failed, aborting."; return 1; }
+
+      tmux kill-session -t "$SESSION" 2>/dev/null || true
+
+      tmux new-session -d -s "$SESSION" -n "worker" \
+        -e "PATH=$PATH" -e "REPO_ROOT=$REPO_ROOT"
+      tmux send-keys -t "$SESSION:worker" \
+        "source '$REPO_ROOT/local-dev/env.sh' && cd '$REPO_ROOT/worker' && go run ." Enter
+
+      tmux new-window -t "$SESSION" -n "mock-listener" \
+        -e "PATH=$PATH" -e "REPO_ROOT=$REPO_ROOT"
+      tmux send-keys -t "$SESSION:mock-listener" \
+        "source '$REPO_ROOT/local-dev/env.sh' && cd '$REPO_ROOT' && bazelisk run //mock-data-services/mock-listener-service:MockListenerService" Enter
+
+      tmux new-window -t "$SESSION" -n "scheduler" \
+        -e "PATH=$PATH" -e "REPO_ROOT=$REPO_ROOT"
+      tmux send-keys -t "$SESSION:scheduler" \
+        "sleep 5 && source '$REPO_ROOT/local-dev/env.sh' && cd '$REPO_ROOT' && bazelisk run //scheduler:Scheduler" Enter
+
+      tmux new-window -t "$SESSION" -n "submitter" \
+        -e "PATH=$PATH" -e "REPO_ROOT=$REPO_ROOT"
+      tmux send-keys -t "$SESSION:submitter" \
+        "sleep 5 && source '$REPO_ROOT/local-dev/env.sh' && cd '$REPO_ROOT' && bazelisk run //submitter:Submitter" Enter
+
+      tmux new-window -t "$SESSION" -n "ui" \
+        -e "PATH=$PATH" -e "REPO_ROOT=$REPO_ROOT"
+      tmux send-keys -t "$SESSION:ui" \
+        "cd '$REPO_ROOT/ui' && npm run dev" Enter
+
+      tmux select-window -t "$SESSION:worker"
+      echo "==> Attaching to tmux session '$SESSION'. Use Ctrl+b n/p to switch windows. Ctrl+b d to detach."
+      tmux attach-session -t "$SESSION"
+    }
+
+    local-stop-all() {
+      tmux kill-session -t "conductor" 2>/dev/null && echo "Stopped all services." || echo "No running session found."
+    }
+
     local-logs() {
       docker-compose -f "$REPO_ROOT/local-dev/docker-compose.yml" logs -f
     }
@@ -92,11 +140,15 @@ pkgs.mkShell {
           echo ""
           echo "  Conductor local dev shell"
           echo "  ─────────────────────────────────────────────────────"
+          echo "  local-start-all             Start ALL services in tmux (one command!)"
+          echo "  local-stop-all              Kill the tmux session + all services"
+          echo "  ─────────────────────────────────────────────────────"
           echo "  local-up                    Start postgres + elasticmq"
-          echo "  local-run-submitter         Insert jobs into DB  [bazel run]"
-          echo "  local-run-scheduler         Poll DB → SQS         [bazel run]"
           echo "  local-run-worker            Poll SQS → execute    [go run]"
           echo "  local-run-mock-listener     HTTP listener (port 8081) [bazel run]"
+          echo "  local-run-scheduler         Poll DB → SQS         [bazel run]"
+          echo "  local-run-submitter         Insert jobs into DB  [bazel run]"
+          echo "  local-run-ui                Vite dev server (port 9080) [npm run dev]"
           echo "  local-run-mock-data-service Periodic job submitter    [bazel run]"
           echo "  local-down                  Stop containers (keeps DB data)"
           echo "  local-down-clean            Stop + delete DB volume"
@@ -113,12 +165,16 @@ pkgs.mkShell {
       echo ""
       echo "  Conductor local dev shell"
       echo "  ─────────────────────────────────────────────────────"
+      echo "  local-start-all             Start ALL services in tmux (one command!)"
+      echo "  local-stop-all              Kill the tmux session + all services"
+      echo "  ─────────────────────────────────────────────────────"
       echo "  local-up                    Start postgres + elasticmq"
       echo "  local-setup                 Run migrations (after local-up)"
-      echo "  local-run-submitter         Insert jobs into DB  [bazel run]"
-      echo "  local-run-scheduler         Poll DB → SQS         [bazel run]"
       echo "  local-run-worker            Poll SQS → execute    [go run]"
       echo "  local-run-mock-listener     HTTP listener (port 8081) [bazel run]"
+      echo "  local-run-scheduler         Poll DB → SQS         [bazel run]"
+      echo "  local-run-submitter         Insert jobs into DB  [bazel run]"
+      echo "  local-run-ui                Vite dev server (port 9080) [npm run dev]"
       echo "  local-run-mock-data-service Periodic job submitter    [bazel run]"
       echo "  local-down                  Stop containers (keeps DB data)"
       echo "  local-down-clean            Stop + delete DB volume"
