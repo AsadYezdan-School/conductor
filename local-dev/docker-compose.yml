@@ -28,7 +28,7 @@ services:
     volumes:
       - ./elasticmq.conf:/opt/elasticmq.conf:ro
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:9325 || exit 1"]
+      test: ["CMD-SHELL", "curl -s -o /dev/null http://localhost:9324 || exit 1"]
       interval: 3s
       timeout: 5s
       retries: 10
@@ -69,8 +69,8 @@ services:
     image: conductor/scheduler:dummy
     container_name: conductor-scheduler
     ports:
-      - "50051:50051"
-      - "50052:50052"
+      - "50053:50051"
+      - "50054:50052"
     environment:
       DB_WRITER_URL: "jdbc:postgresql://postgres:5432/conductor?sslmode=disable"
       DB_USERNAME: conductor
