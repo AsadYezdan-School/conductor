@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: conductor
       POSTGRES_DB: conductor
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - conductor-pg-data:/var/lib/postgresql/data
     healthcheck:
@@ -23,8 +23,8 @@ services:
     image: softwaremill/elasticmq:latest
     container_name: conductor-elasticmq
     ports:
-      - "9324:9324"
-      - "9325:9325"
+      - "127.0.0.1:9324:9324"
+      - "127.0.0.1:9325:9325"
     volumes:
       - ./elasticmq.conf:/opt/elasticmq.conf:ro
     healthcheck:
@@ -55,7 +55,7 @@ services:
     image: conductor/submitter:dummy
     container_name: conductor-submitter
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     environment:
       DB_WRITER_URL: "jdbc:postgresql://postgres:5432/conductor?sslmode=disable"
       DB_USERNAME: conductor
@@ -69,8 +69,8 @@ services:
     image: conductor/scheduler:dummy
     container_name: conductor-scheduler
     ports:
-      - "50053:50051"
-      - "50054:50052"
+      - "127.0.0.1:50053:50051"
+      - "127.0.0.1:50054:50052"
     environment:
       DB_WRITER_URL: "jdbc:postgresql://postgres:5432/conductor?sslmode=disable"
       DB_USERNAME: conductor
@@ -108,7 +108,7 @@ services:
     image: conductor/mock-listener-service:dummy
     container_name: conductor-mock-listener
     ports:
-      - "8081:8080"
+      - "127.0.0.1:8081:8080"
     environment:
       MOCK_LISTENER_PORT: "8080"
       RESPONSE_STATUS_CODE: "200"
