@@ -1,5 +1,8 @@
 package com.github.asadyezdanschool.conductor.submitter.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader;
 import com.github.asadyezdanschool.conductor.grpc.execution.JobType;
 import com.github.asadyezdanschool.conductor.grpc.management.*;
 import com.github.asadyezdanschool.conductor.submitter.exception.ConflictException;
@@ -16,6 +19,7 @@ import io.grpc.StatusRuntimeException;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -23,6 +27,8 @@ import java.util.logging.Logger;
 public class JobServiceImpl implements JobService {
 
     private static final Logger log = Logger.getLogger(JobServiceImpl.class.getName());
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final SchedulerGrpcClient grpcClient;
 
@@ -38,6 +44,13 @@ public class JobServiceImpl implements JobService {
                     .setUrl(req.url() != null ? req.url() : "")
                     .setMethod(req.method() != null ? req.method() : "GET");
             if (req.timeoutSeconds() != null) httpConfig.setTimeoutSeconds(req.timeoutSeconds());
+            if (req.payload() != null) httpConfig.setPayload(toJson(req.payload()));
+            if (req.headers() != null) {
+                for (Map.Entry<String, String> e : req.headers().entrySet()) {
+                    httpConfig.addHeaders(HttpHeader.newBuilder()
+                            .setName(e.getKey()).setValue(e.getValue()).build());
+                }
+            }
 
             CreateJobRequest proto = CreateJobRequest.newBuilder()
                     .setName(req.name() != null ? req.name() : "")
@@ -69,11 +82,19 @@ public class JobServiceImpl implements JobService {
             if (req.name() != null) protoBuilder.setName(req.name());
             if (req.cron()  != null) protoBuilder.setCron(req.cron());
 
-            if (req.url() != null || req.method() != null || req.timeoutSeconds() != null) {
+            if (req.url() != null || req.method() != null || req.timeoutSeconds() != null
+                    || req.payload() != null || req.headers() != null) {
                 HttpEditConfig.Builder httpEdit = HttpEditConfig.newBuilder();
                 if (req.url()            != null) httpEdit.setUrl(req.url());
                 if (req.method()         != null) httpEdit.setMethod(req.method());
                 if (req.timeoutSeconds() != null) httpEdit.setTimeoutSeconds(req.timeoutSeconds());
+                if (req.payload()        != null) httpEdit.setPayload(toJson(req.payload()));
+                if (req.headers()        != null) {
+                    for (Map.Entry<String, String> e : req.headers().entrySet()) {
+                        httpEdit.addHeaders(HttpHeader.newBuilder()
+                                .setName(e.getKey()).setValue(e.getValue()).build());
+                    }
+                }
                 protoBuilder.setHttpConfig(httpEdit.build());
             }
 
@@ -114,6 +135,14 @@ public class JobServiceImpl implements JobService {
             return new ParkStatusResponse(UUID.fromString(resp.getJobFamilyId()), resp.getIsParked());
         } catch (StatusRuntimeException e) {
             throw mapGrpcException(e);
+        }
+    }
+
+    private static String toJson(Object value) {
+        try {
+            return MAPPER.writeValueAsString(value);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to serialize to JSON", e);
         }
     }
 

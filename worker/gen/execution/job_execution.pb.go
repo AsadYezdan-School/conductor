@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v3.21.12
-// source: proto/job_execution.proto
+// source: job_execution.proto
 
 package execution
 
@@ -57,11 +57,11 @@ func (x JobType) String() string {
 }
 
 func (JobType) Descriptor() protoreflect.EnumDescriptor {
-	return file_proto_job_execution_proto_enumTypes[0].Descriptor()
+	return file_job_execution_proto_enumTypes[0].Descriptor()
 }
 
 func (JobType) Type() protoreflect.EnumType {
-	return &file_proto_job_execution_proto_enumTypes[0]
+	return &file_job_execution_proto_enumTypes[0]
 }
 
 func (x JobType) Number() protoreflect.EnumNumber {
@@ -70,7 +70,7 @@ func (x JobType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use JobType.Descriptor instead.
 func (JobType) EnumDescriptor() ([]byte, []int) {
-	return file_proto_job_execution_proto_rawDescGZIP(), []int{0}
+	return file_job_execution_proto_rawDescGZIP(), []int{0}
 }
 
 type JobStatus int32
@@ -124,11 +124,11 @@ func (x JobStatus) String() string {
 }
 
 func (JobStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_proto_job_execution_proto_enumTypes[1].Descriptor()
+	return file_job_execution_proto_enumTypes[1].Descriptor()
 }
 
 func (JobStatus) Type() protoreflect.EnumType {
-	return &file_proto_job_execution_proto_enumTypes[1]
+	return &file_job_execution_proto_enumTypes[1]
 }
 
 func (x JobStatus) Number() protoreflect.EnumNumber {
@@ -137,7 +137,59 @@ func (x JobStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use JobStatus.Descriptor instead.
 func (JobStatus) EnumDescriptor() ([]byte, []int) {
-	return file_proto_job_execution_proto_rawDescGZIP(), []int{1}
+	return file_job_execution_proto_rawDescGZIP(), []int{1}
+}
+
+type HttpHeader struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Value         string                 `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HttpHeader) Reset() {
+	*x = HttpHeader{}
+	mi := &file_job_execution_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HttpHeader) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HttpHeader) ProtoMessage() {}
+
+func (x *HttpHeader) ProtoReflect() protoreflect.Message {
+	mi := &file_job_execution_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HttpHeader.ProtoReflect.Descriptor instead.
+func (*HttpHeader) Descriptor() ([]byte, []int) {
+	return file_job_execution_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *HttpHeader) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *HttpHeader) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
 }
 
 type GetHttpRunDetailsRequest struct {
@@ -149,7 +201,7 @@ type GetHttpRunDetailsRequest struct {
 
 func (x *GetHttpRunDetailsRequest) Reset() {
 	*x = GetHttpRunDetailsRequest{}
-	mi := &file_proto_job_execution_proto_msgTypes[0]
+	mi := &file_job_execution_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -161,7 +213,7 @@ func (x *GetHttpRunDetailsRequest) String() string {
 func (*GetHttpRunDetailsRequest) ProtoMessage() {}
 
 func (x *GetHttpRunDetailsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_job_execution_proto_msgTypes[0]
+	mi := &file_job_execution_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -174,7 +226,7 @@ func (x *GetHttpRunDetailsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetHttpRunDetailsRequest.ProtoReflect.Descriptor instead.
 func (*GetHttpRunDetailsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_job_execution_proto_rawDescGZIP(), []int{0}
+	return file_job_execution_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *GetHttpRunDetailsRequest) GetJobRunId() string {
@@ -191,10 +243,9 @@ type GetHttpRunDetailsResponse struct {
 	Url             string                 `protobuf:"bytes,3,opt,name=url,proto3" json:"url,omitempty"`
 	Method          string                 `protobuf:"bytes,4,opt,name=method,proto3" json:"method,omitempty"`
 	// JSON string; empty if not set on the job definition
-	Payload string `protobuf:"bytes,5,opt,name=payload,proto3" json:"payload,omitempty"`
-	// JSON string; empty if not set on the job definition
-	Headers        string `protobuf:"bytes,6,opt,name=headers,proto3" json:"headers,omitempty"`
-	TimeoutSeconds int32  `protobuf:"varint,7,opt,name=timeout_seconds,json=timeoutSeconds,proto3" json:"timeout_seconds,omitempty"`
+	Payload        string        `protobuf:"bytes,5,opt,name=payload,proto3" json:"payload,omitempty"`
+	Headers        []*HttpHeader `protobuf:"bytes,6,rep,name=headers,proto3" json:"headers,omitempty"`
+	TimeoutSeconds int32         `protobuf:"varint,7,opt,name=timeout_seconds,json=timeoutSeconds,proto3" json:"timeout_seconds,omitempty"`
 	// Which attempt this is (1 = first, 2 = first retry, etc.)
 	AttemptNumber int32 `protobuf:"varint,8,opt,name=attempt_number,json=attemptNumber,proto3" json:"attempt_number,omitempty"`
 	// Maximum number of attempts allowed for this job
@@ -205,7 +256,7 @@ type GetHttpRunDetailsResponse struct {
 
 func (x *GetHttpRunDetailsResponse) Reset() {
 	*x = GetHttpRunDetailsResponse{}
-	mi := &file_proto_job_execution_proto_msgTypes[1]
+	mi := &file_job_execution_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -217,7 +268,7 @@ func (x *GetHttpRunDetailsResponse) String() string {
 func (*GetHttpRunDetailsResponse) ProtoMessage() {}
 
 func (x *GetHttpRunDetailsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_job_execution_proto_msgTypes[1]
+	mi := &file_job_execution_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -230,7 +281,7 @@ func (x *GetHttpRunDetailsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetHttpRunDetailsResponse.ProtoReflect.Descriptor instead.
 func (*GetHttpRunDetailsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_job_execution_proto_rawDescGZIP(), []int{1}
+	return file_job_execution_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *GetHttpRunDetailsResponse) GetJobRunId() string {
@@ -268,11 +319,11 @@ func (x *GetHttpRunDetailsResponse) GetPayload() string {
 	return ""
 }
 
-func (x *GetHttpRunDetailsResponse) GetHeaders() string {
+func (x *GetHttpRunDetailsResponse) GetHeaders() []*HttpHeader {
 	if x != nil {
 		return x.Headers
 	}
-	return ""
+	return nil
 }
 
 func (x *GetHttpRunDetailsResponse) GetTimeoutSeconds() int32 {
@@ -314,7 +365,7 @@ type ReportStatusRequest struct {
 
 func (x *ReportStatusRequest) Reset() {
 	*x = ReportStatusRequest{}
-	mi := &file_proto_job_execution_proto_msgTypes[2]
+	mi := &file_job_execution_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -326,7 +377,7 @@ func (x *ReportStatusRequest) String() string {
 func (*ReportStatusRequest) ProtoMessage() {}
 
 func (x *ReportStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_job_execution_proto_msgTypes[2]
+	mi := &file_job_execution_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -339,7 +390,7 @@ func (x *ReportStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportStatusRequest.ProtoReflect.Descriptor instead.
 func (*ReportStatusRequest) Descriptor() ([]byte, []int) {
-	return file_proto_job_execution_proto_rawDescGZIP(), []int{2}
+	return file_job_execution_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ReportStatusRequest) GetJobRunId() string {
@@ -395,7 +446,7 @@ type ReportStatusResponse struct {
 
 func (x *ReportStatusResponse) Reset() {
 	*x = ReportStatusResponse{}
-	mi := &file_proto_job_execution_proto_msgTypes[3]
+	mi := &file_job_execution_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -407,7 +458,7 @@ func (x *ReportStatusResponse) String() string {
 func (*ReportStatusResponse) ProtoMessage() {}
 
 func (x *ReportStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_job_execution_proto_msgTypes[3]
+	mi := &file_job_execution_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -420,7 +471,7 @@ func (x *ReportStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportStatusResponse.ProtoReflect.Descriptor instead.
 func (*ReportStatusResponse) Descriptor() ([]byte, []int) {
-	return file_proto_job_execution_proto_rawDescGZIP(), []int{3}
+	return file_job_execution_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ReportStatusResponse) GetAcknowledged() bool {
@@ -437,22 +488,26 @@ func (x *ReportStatusResponse) GetShouldRetry() bool {
 	return false
 }
 
-var File_proto_job_execution_proto protoreflect.FileDescriptor
+var File_job_execution_proto protoreflect.FileDescriptor
 
-const file_proto_job_execution_proto_rawDesc = "" +
+const file_job_execution_proto_rawDesc = "" +
 	"\n" +
-	"\x19proto/job_execution.proto\x12\x13conductor.execution\"8\n" +
+	"\x13job_execution.proto\x12\x13conductor.execution\"6\n" +
+	"\n" +
+	"HttpHeader\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value\"8\n" +
 	"\x18GetHttpRunDetailsRequest\x12\x1c\n" +
 	"\n" +
-	"job_run_id\x18\x01 \x01(\tR\bjobRunId\"\xb4\x02\n" +
+	"job_run_id\x18\x01 \x01(\tR\bjobRunId\"\xd5\x02\n" +
 	"\x19GetHttpRunDetailsResponse\x12\x1c\n" +
 	"\n" +
 	"job_run_id\x18\x01 \x01(\tR\bjobRunId\x12*\n" +
 	"\x11job_definition_id\x18\x02 \x01(\tR\x0fjobDefinitionId\x12\x10\n" +
 	"\x03url\x18\x03 \x01(\tR\x03url\x12\x16\n" +
 	"\x06method\x18\x04 \x01(\tR\x06method\x12\x18\n" +
-	"\apayload\x18\x05 \x01(\tR\apayload\x12\x18\n" +
-	"\aheaders\x18\x06 \x01(\tR\aheaders\x12'\n" +
+	"\apayload\x18\x05 \x01(\tR\apayload\x129\n" +
+	"\aheaders\x18\x06 \x03(\v2\x1f.conductor.execution.HttpHeaderR\aheaders\x12'\n" +
 	"\x0ftimeout_seconds\x18\a \x01(\x05R\x0etimeoutSeconds\x12%\n" +
 	"\x0eattempt_number\x18\b \x01(\x05R\rattemptNumber\x12\x1f\n" +
 	"\vmax_retries\x18\t \x01(\x05R\n" +
@@ -494,61 +549,63 @@ const file_proto_job_execution_proto_rawDesc = "" +
 	"4com.github.asadyezdanschool.conductor.grpc.executionB\x11JobExecutionProtoP\x01Z:github.com/asadyezdanschool/conductor/worker/gen/executionb\x06proto3"
 
 var (
-	file_proto_job_execution_proto_rawDescOnce sync.Once
-	file_proto_job_execution_proto_rawDescData []byte
+	file_job_execution_proto_rawDescOnce sync.Once
+	file_job_execution_proto_rawDescData []byte
 )
 
-func file_proto_job_execution_proto_rawDescGZIP() []byte {
-	file_proto_job_execution_proto_rawDescOnce.Do(func() {
-		file_proto_job_execution_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_job_execution_proto_rawDesc), len(file_proto_job_execution_proto_rawDesc)))
+func file_job_execution_proto_rawDescGZIP() []byte {
+	file_job_execution_proto_rawDescOnce.Do(func() {
+		file_job_execution_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_job_execution_proto_rawDesc), len(file_job_execution_proto_rawDesc)))
 	})
-	return file_proto_job_execution_proto_rawDescData
+	return file_job_execution_proto_rawDescData
 }
 
-var file_proto_job_execution_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_proto_job_execution_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
-var file_proto_job_execution_proto_goTypes = []any{
+var file_job_execution_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_job_execution_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_job_execution_proto_goTypes = []any{
 	(JobType)(0),                      // 0: conductor.execution.JobType
 	(JobStatus)(0),                    // 1: conductor.execution.JobStatus
-	(*GetHttpRunDetailsRequest)(nil),  // 2: conductor.execution.GetHttpRunDetailsRequest
-	(*GetHttpRunDetailsResponse)(nil), // 3: conductor.execution.GetHttpRunDetailsResponse
-	(*ReportStatusRequest)(nil),       // 4: conductor.execution.ReportStatusRequest
-	(*ReportStatusResponse)(nil),      // 5: conductor.execution.ReportStatusResponse
+	(*HttpHeader)(nil),                // 2: conductor.execution.HttpHeader
+	(*GetHttpRunDetailsRequest)(nil),  // 3: conductor.execution.GetHttpRunDetailsRequest
+	(*GetHttpRunDetailsResponse)(nil), // 4: conductor.execution.GetHttpRunDetailsResponse
+	(*ReportStatusRequest)(nil),       // 5: conductor.execution.ReportStatusRequest
+	(*ReportStatusResponse)(nil),      // 6: conductor.execution.ReportStatusResponse
 }
-var file_proto_job_execution_proto_depIdxs = []int32{
-	1, // 0: conductor.execution.ReportStatusRequest.status:type_name -> conductor.execution.JobStatus
-	2, // 1: conductor.execution.JobExecutionService.GetHttpRunDetails:input_type -> conductor.execution.GetHttpRunDetailsRequest
-	4, // 2: conductor.execution.JobExecutionService.ReportStatus:input_type -> conductor.execution.ReportStatusRequest
-	3, // 3: conductor.execution.JobExecutionService.GetHttpRunDetails:output_type -> conductor.execution.GetHttpRunDetailsResponse
-	5, // 4: conductor.execution.JobExecutionService.ReportStatus:output_type -> conductor.execution.ReportStatusResponse
-	3, // [3:5] is the sub-list for method output_type
-	1, // [1:3] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+var file_job_execution_proto_depIdxs = []int32{
+	2, // 0: conductor.execution.GetHttpRunDetailsResponse.headers:type_name -> conductor.execution.HttpHeader
+	1, // 1: conductor.execution.ReportStatusRequest.status:type_name -> conductor.execution.JobStatus
+	3, // 2: conductor.execution.JobExecutionService.GetHttpRunDetails:input_type -> conductor.execution.GetHttpRunDetailsRequest
+	5, // 3: conductor.execution.JobExecutionService.ReportStatus:input_type -> conductor.execution.ReportStatusRequest
+	4, // 4: conductor.execution.JobExecutionService.GetHttpRunDetails:output_type -> conductor.execution.GetHttpRunDetailsResponse
+	6, // 5: conductor.execution.JobExecutionService.ReportStatus:output_type -> conductor.execution.ReportStatusResponse
+	4, // [4:6] is the sub-list for method output_type
+	2, // [2:4] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
-func init() { file_proto_job_execution_proto_init() }
-func file_proto_job_execution_proto_init() {
-	if File_proto_job_execution_proto != nil {
+func init() { file_job_execution_proto_init() }
+func file_job_execution_proto_init() {
+	if File_job_execution_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_job_execution_proto_rawDesc), len(file_proto_job_execution_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_job_execution_proto_rawDesc), len(file_job_execution_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   4,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_proto_job_execution_proto_goTypes,
-		DependencyIndexes: file_proto_job_execution_proto_depIdxs,
-		EnumInfos:         file_proto_job_execution_proto_enumTypes,
-		MessageInfos:      file_proto_job_execution_proto_msgTypes,
+		GoTypes:           file_job_execution_proto_goTypes,
+		DependencyIndexes: file_job_execution_proto_depIdxs,
+		EnumInfos:         file_job_execution_proto_enumTypes,
+		MessageInfos:      file_job_execution_proto_msgTypes,
 	}.Build()
-	File_proto_job_execution_proto = out.File
-	file_proto_job_execution_proto_goTypes = nil
-	file_proto_job_execution_proto_depIdxs = nil
+	File_job_execution_proto = out.File
+	file_job_execution_proto_goTypes = nil
+	file_job_execution_proto_depIdxs = nil
 }

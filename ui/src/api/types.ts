@@ -26,7 +26,7 @@ export interface JobDetail {
   url: string;
   method: string;
   payload: string | null;
-  headers: string | null;
+  headers: Record<string, string> | null;
   timeoutSeconds: number;
 }
 

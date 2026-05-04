@@ -18,19 +18,19 @@ message HttpJobConfig {
   string method          = 2;
   // JSON string; omit or leave empty for no payload
   string payload         = 3;
-  // JSON string; omit or leave empty for no custom headers
-  string headers         = 4;
+  repeated conductor.execution.HttpHeader headers = 4;
   // Defaults to 30 on the server if 0
   int32  timeout_seconds = 5;
 }
 
 // Partial HTTP configuration for edits — every field is optional.
 // Omitted fields carry forward their current value from the database.
+// headers: empty list = carry forward; non-empty = replace all headers.
 message HttpEditConfig {
   optional string url             = 1;
   optional string method          = 2;
   optional string payload         = 3;
-  optional string headers         = 4;
+  repeated conductor.execution.HttpHeader headers = 4;
   optional int32  timeout_seconds = 5;
 }
 

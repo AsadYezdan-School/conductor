@@ -15,6 +15,11 @@ public final class JobExecutionProto {
         (com.google.protobuf.ExtensionRegistryLite) registry);
   }
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_conductor_execution_HttpHeader_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_conductor_execution_HttpHeader_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_conductor_execution_GetHttpRunDetailsRequest_descriptor;
   static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
@@ -44,59 +49,67 @@ public final class JobExecutionProto {
   static {
     java.lang.String[] descriptorData = {
       "\n\023job_execution.proto\022\023conductor.executi" +
-      "on\".\n\030GetHttpRunDetailsRequest\022\022\n\njob_ru" +
-      "n_id\030\001 \001(\t\"\317\001\n\031GetHttpRunDetailsResponse" +
-      "\022\022\n\njob_run_id\030\001 \001(\t\022\031\n\021job_definition_i" +
-      "d\030\002 \001(\t\022\013\n\003url\030\003 \001(\t\022\016\n\006method\030\004 \001(\t\022\017\n\007" +
-      "payload\030\005 \001(\t\022\017\n\007headers\030\006 \001(\t\022\027\n\017timeou" +
-      "t_seconds\030\007 \001(\005\022\026\n\016attempt_number\030\010 \001(\005\022" +
-      "\023\n\013max_retries\030\t \001(\005\"\260\001\n\023ReportStatusReq" +
-      "uest\022\022\n\njob_run_id\030\001 \001(\t\022.\n\006status\030\002 \001(\016" +
-      "2\036.conductor.execution.JobStatus\022\017\n\007mess" +
-      "age\030\003 \001(\t\022\030\n\020http_status_code\030\004 \001(\005\022\025\n\rr" +
-      "esponse_body\030\005 \001(\t\022\023\n\013duration_ms\030\006 \001(\003\"" +
-      "B\n\024ReportStatusResponse\022\024\n\014acknowledged\030" +
-      "\001 \001(\010\022\024\n\014should_retry\030\002 \001(\010*D\n\007JobType\022\030" +
-      "\n\024JOB_TYPE_UNSPECIFIED\020\000\022\010\n\004HTTP\020\001\022\t\n\005SH" +
-      "ELL\020\002\022\n\n\006PYTHON\020\003*\221\001\n\tJobStatus\022\032\n\026JOB_S" +
-      "TATUS_UNSPECIFIED\020\000\022\013\n\007WAITING\020\001\022\n\n\006QUEU" +
-      "ED\020\002\022\013\n\007RUNNING\020\003\022\r\n\tSUCCEEDED\020\004\022\n\n\006FAIL" +
-      "ED\020\005\022\014\n\010RETRYING\020\006\022\r\n\tCANCELLED\020\007\022\n\n\006PAR" +
-      "KED\020\0102\356\001\n\023JobExecutionService\022r\n\021GetHttp" +
-      "RunDetails\022-.conductor.execution.GetHttp" +
-      "RunDetailsRequest\032..conductor.execution." +
-      "GetHttpRunDetailsResponse\022c\n\014ReportStatu" +
-      "s\022(.conductor.execution.ReportStatusRequ" +
-      "est\032).conductor.execution.ReportStatusRe" +
-      "sponseB\207\001\n4com.github.asadyezdanschool.c" +
-      "onductor.grpc.executionB\021JobExecutionPro" +
-      "toP\001Z:github.com/asadyezdanschool/conduc" +
-      "tor/worker/gen/executionb\006proto3"
+      "on\")\n\nHttpHeader\022\014\n\004name\030\001 \001(\t\022\r\n\005value\030" +
+      "\002 \001(\t\".\n\030GetHttpRunDetailsRequest\022\022\n\njob" +
+      "_run_id\030\001 \001(\t\"\360\001\n\031GetHttpRunDetailsRespo" +
+      "nse\022\022\n\njob_run_id\030\001 \001(\t\022\031\n\021job_definitio" +
+      "n_id\030\002 \001(\t\022\013\n\003url\030\003 \001(\t\022\016\n\006method\030\004 \001(\t\022" +
+      "\017\n\007payload\030\005 \001(\t\0220\n\007headers\030\006 \003(\0132\037.cond" +
+      "uctor.execution.HttpHeader\022\027\n\017timeout_se" +
+      "conds\030\007 \001(\005\022\026\n\016attempt_number\030\010 \001(\005\022\023\n\013m" +
+      "ax_retries\030\t \001(\005\"\260\001\n\023ReportStatusRequest" +
+      "\022\022\n\njob_run_id\030\001 \001(\t\022.\n\006status\030\002 \001(\0162\036.c" +
+      "onductor.execution.JobStatus\022\017\n\007message\030" +
+      "\003 \001(\t\022\030\n\020http_status_code\030\004 \001(\005\022\025\n\rrespo" +
+      "nse_body\030\005 \001(\t\022\023\n\013duration_ms\030\006 \001(\003\"B\n\024R" +
+      "eportStatusResponse\022\024\n\014acknowledged\030\001 \001(" +
+      "\010\022\024\n\014should_retry\030\002 \001(\010*D\n\007JobType\022\030\n\024JO" +
+      "B_TYPE_UNSPECIFIED\020\000\022\010\n\004HTTP\020\001\022\t\n\005SHELL\020" +
+      "\002\022\n\n\006PYTHON\020\003*\221\001\n\tJobStatus\022\032\n\026JOB_STATU" +
+      "S_UNSPECIFIED\020\000\022\013\n\007WAITING\020\001\022\n\n\006QUEUED\020\002" +
+      "\022\013\n\007RUNNING\020\003\022\r\n\tSUCCEEDED\020\004\022\n\n\006FAILED\020\005" +
+      "\022\014\n\010RETRYING\020\006\022\r\n\tCANCELLED\020\007\022\n\n\006PARKED\020" +
+      "\0102\356\001\n\023JobExecutionService\022r\n\021GetHttpRunD" +
+      "etails\022-.conductor.execution.GetHttpRunD" +
+      "etailsRequest\032..conductor.execution.GetH" +
+      "ttpRunDetailsResponse\022c\n\014ReportStatus\022(." +
+      "conductor.execution.ReportStatusRequest\032" +
+      ").conductor.execution.ReportStatusRespon" +
+      "seB\207\001\n4com.github.asadyezdanschool.condu" +
+      "ctor.grpc.executionB\021JobExecutionProtoP\001" +
+      "Z:github.com/asadyezdanschool/conductor/" +
+      "worker/gen/executionb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
         });
-    internal_static_conductor_execution_GetHttpRunDetailsRequest_descriptor =
+    internal_static_conductor_execution_HttpHeader_descriptor =
       getDescriptor().getMessageTypes().get(0);
+    internal_static_conductor_execution_HttpHeader_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_conductor_execution_HttpHeader_descriptor,
+        new java.lang.String[] { "Name", "Value", });
+    internal_static_conductor_execution_GetHttpRunDetailsRequest_descriptor =
+      getDescriptor().getMessageTypes().get(1);
     internal_static_conductor_execution_GetHttpRunDetailsRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_conductor_execution_GetHttpRunDetailsRequest_descriptor,
         new java.lang.String[] { "JobRunId", });
     internal_static_conductor_execution_GetHttpRunDetailsResponse_descriptor =
-      getDescriptor().getMessageTypes().get(1);
+      getDescriptor().getMessageTypes().get(2);
     internal_static_conductor_execution_GetHttpRunDetailsResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_conductor_execution_GetHttpRunDetailsResponse_descriptor,
         new java.lang.String[] { "JobRunId", "JobDefinitionId", "Url", "Method", "Payload", "Headers", "TimeoutSeconds", "AttemptNumber", "MaxRetries", });
     internal_static_conductor_execution_ReportStatusRequest_descriptor =
-      getDescriptor().getMessageTypes().get(2);
+      getDescriptor().getMessageTypes().get(3);
     internal_static_conductor_execution_ReportStatusRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_conductor_execution_ReportStatusRequest_descriptor,
         new java.lang.String[] { "JobRunId", "Status", "Message", "HttpStatusCode", "ResponseBody", "DurationMs", });
     internal_static_conductor_execution_ReportStatusResponse_descriptor =
-      getDescriptor().getMessageTypes().get(3);
+      getDescriptor().getMessageTypes().get(4);
     internal_static_conductor_execution_ReportStatusResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_conductor_execution_ReportStatusResponse_descriptor,

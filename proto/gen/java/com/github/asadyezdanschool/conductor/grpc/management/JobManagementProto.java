@@ -74,44 +74,46 @@ public final class JobManagementProto {
   static {
     java.lang.String[] descriptorData = {
       "\n\024job_management.proto\022\024conductor.manage" +
-      "ment\032\023job_execution.proto\"g\n\rHttpJobConf" +
-      "ig\022\013\n\003url\030\001 \001(\t\022\016\n\006method\030\002 \001(\t\022\017\n\007paylo" +
-      "ad\030\003 \001(\t\022\017\n\007headers\030\004 \001(\t\022\027\n\017timeout_sec" +
-      "onds\030\005 \001(\005\"\300\001\n\016HttpEditConfig\022\020\n\003url\030\001 \001" +
-      "(\tH\000\210\001\001\022\023\n\006method\030\002 \001(\tH\001\210\001\001\022\024\n\007payload\030" +
-      "\003 \001(\tH\002\210\001\001\022\024\n\007headers\030\004 \001(\tH\003\210\001\001\022\034\n\017time" +
-      "out_seconds\030\005 \001(\005H\004\210\001\001B\006\n\004_urlB\t\n\007_metho" +
-      "dB\n\n\010_payloadB\n\n\010_headersB\022\n\020_timeout_se" +
-      "conds\"\244\001\n\020CreateJobRequest\022\014\n\004name\030\001 \001(\t" +
-      "\022\014\n\004cron\030\002 \001(\t\022.\n\010job_type\030\003 \001(\0162\034.condu" +
-      "ctor.execution.JobType\022:\n\013http_config\030\004 " +
-      "\001(\0132#.conductor.management.HttpJobConfig" +
-      "H\000B\010\n\006config\"V\n\021CreateJobResponse\022\025\n\rjob" +
-      "_family_id\030\001 \001(\t\022\031\n\021job_definition_id\030\002 " +
-      "\001(\t\022\017\n\007version\030\003 \001(\005\"\246\001\n\016EditJobRequest\022" +
-      "\025\n\rjob_family_id\030\001 \001(\t\022\021\n\004name\030\002 \001(\tH\001\210\001" +
-      "\001\022\021\n\004cron\030\003 \001(\tH\002\210\001\001\022;\n\013http_config\030\004 \001(" +
-      "\0132$.conductor.management.HttpEditConfigH" +
-      "\000B\010\n\006configB\007\n\005_nameB\007\n\005_cron\"T\n\017EditJob" +
-      "Response\022\025\n\rjob_family_id\030\001 \001(\t\022\031\n\021job_d" +
-      "efinition_id\030\002 \001(\t\022\017\n\007version\030\003 \001(\005\"\'\n\016P" +
-      "arkJobRequest\022\025\n\rjob_family_id\030\001 \001(\t\";\n\017" +
-      "ParkJobResponse\022\025\n\rjob_family_id\030\001 \001(\t\022\021" +
-      "\n\tis_parked\030\002 \001(\010\")\n\020UnparkJobRequest\022\025\n" +
-      "\rjob_family_id\030\001 \001(\t\"=\n\021UnparkJobRespons" +
-      "e\022\025\n\rjob_family_id\030\001 \001(\t\022\021\n\tis_parked\030\002 " +
-      "\001(\0102\202\003\n\024JobManagementService\022\\\n\tCreateJo" +
-      "b\022&.conductor.management.CreateJobReques" +
-      "t\032\'.conductor.management.CreateJobRespon" +
-      "se\022V\n\007EditJob\022$.conductor.management.Edi" +
-      "tJobRequest\032%.conductor.management.EditJ" +
-      "obResponse\022V\n\007ParkJob\022$.conductor.manage" +
-      "ment.ParkJobRequest\032%.conductor.manageme" +
-      "nt.ParkJobResponse\022\\\n\tUnparkJob\022&.conduc" +
-      "tor.management.UnparkJobRequest\032\'.conduc" +
-      "tor.management.UnparkJobResponseBM\n5com." +
-      "github.asadyezdanschool.conductor.grpc.m" +
-      "anagementB\022JobManagementProtoP\001b\006proto3"
+      "ment\032\023job_execution.proto\"\210\001\n\rHttpJobCon" +
+      "fig\022\013\n\003url\030\001 \001(\t\022\016\n\006method\030\002 \001(\t\022\017\n\007payl" +
+      "oad\030\003 \001(\t\0220\n\007headers\030\004 \003(\0132\037.conductor.e" +
+      "xecution.HttpHeader\022\027\n\017timeout_seconds\030\005" +
+      " \001(\005\"\320\001\n\016HttpEditConfig\022\020\n\003url\030\001 \001(\tH\000\210\001" +
+      "\001\022\023\n\006method\030\002 \001(\tH\001\210\001\001\022\024\n\007payload\030\003 \001(\tH" +
+      "\002\210\001\001\0220\n\007headers\030\004 \003(\0132\037.conductor.execut" +
+      "ion.HttpHeader\022\034\n\017timeout_seconds\030\005 \001(\005H" +
+      "\003\210\001\001B\006\n\004_urlB\t\n\007_methodB\n\n\010_payloadB\022\n\020_" +
+      "timeout_seconds\"\244\001\n\020CreateJobRequest\022\014\n\004" +
+      "name\030\001 \001(\t\022\014\n\004cron\030\002 \001(\t\022.\n\010job_type\030\003 \001" +
+      "(\0162\034.conductor.execution.JobType\022:\n\013http" +
+      "_config\030\004 \001(\0132#.conductor.management.Htt" +
+      "pJobConfigH\000B\010\n\006config\"V\n\021CreateJobRespo" +
+      "nse\022\025\n\rjob_family_id\030\001 \001(\t\022\031\n\021job_defini" +
+      "tion_id\030\002 \001(\t\022\017\n\007version\030\003 \001(\005\"\246\001\n\016EditJ" +
+      "obRequest\022\025\n\rjob_family_id\030\001 \001(\t\022\021\n\004name" +
+      "\030\002 \001(\tH\001\210\001\001\022\021\n\004cron\030\003 \001(\tH\002\210\001\001\022;\n\013http_c" +
+      "onfig\030\004 \001(\0132$.conductor.management.HttpE" +
+      "ditConfigH\000B\010\n\006configB\007\n\005_nameB\007\n\005_cron\"" +
+      "T\n\017EditJobResponse\022\025\n\rjob_family_id\030\001 \001(" +
+      "\t\022\031\n\021job_definition_id\030\002 \001(\t\022\017\n\007version\030" +
+      "\003 \001(\005\"\'\n\016ParkJobRequest\022\025\n\rjob_family_id" +
+      "\030\001 \001(\t\";\n\017ParkJobResponse\022\025\n\rjob_family_" +
+      "id\030\001 \001(\t\022\021\n\tis_parked\030\002 \001(\010\")\n\020UnparkJob" +
+      "Request\022\025\n\rjob_family_id\030\001 \001(\t\"=\n\021Unpark" +
+      "JobResponse\022\025\n\rjob_family_id\030\001 \001(\t\022\021\n\tis" +
+      "_parked\030\002 \001(\0102\202\003\n\024JobManagementService\022\\" +
+      "\n\tCreateJob\022&.conductor.management.Creat" +
+      "eJobRequest\032\'.conductor.management.Creat" +
+      "eJobResponse\022V\n\007EditJob\022$.conductor.mana" +
+      "gement.EditJobRequest\032%.conductor.manage" +
+      "ment.EditJobResponse\022V\n\007ParkJob\022$.conduc" +
+      "tor.management.ParkJobRequest\032%.conducto" +
+      "r.management.ParkJobResponse\022\\\n\tUnparkJo" +
+      "b\022&.conductor.management.UnparkJobReques" +
+      "t\032\'.conductor.management.UnparkJobRespon" +
+      "seBM\n5com.github.asadyezdanschool.conduc" +
+      "tor.grpc.managementB\022JobManagementProtoP" +
+      "\001b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -129,7 +131,7 @@ public final class JobManagementProto {
     internal_static_conductor_management_HttpEditConfig_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_conductor_management_HttpEditConfig_descriptor,
-        new java.lang.String[] { "Url", "Method", "Payload", "Headers", "TimeoutSeconds", "Url", "Method", "Payload", "Headers", "TimeoutSeconds", });
+        new java.lang.String[] { "Url", "Method", "Payload", "Headers", "TimeoutSeconds", "Url", "Method", "Payload", "TimeoutSeconds", });
     internal_static_conductor_management_CreateJobRequest_descriptor =
       getDescriptor().getMessageTypes().get(2);
     internal_static_conductor_management_CreateJobRequest_fieldAccessorTable = new

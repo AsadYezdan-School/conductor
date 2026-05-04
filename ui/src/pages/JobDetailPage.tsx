@@ -116,7 +116,7 @@ export function JobDetailPage() {
               label="Headers"
               value={
                 <pre className="text-xs bg-gray-50 rounded p-2 overflow-x-auto">
-                  {JSON.stringify(JSON.parse(job.headers), null, 2)}
+                  {JSON.stringify(job.headers, null, 2)}
                 </pre>
               }
             />

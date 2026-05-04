@@ -1,3 +1,4 @@
+
 # Conductor Data Model — ER Diagram
 
 ```mermaid
@@ -23,8 +24,14 @@ classDiagram
         +text url
         +request_type method
         +jsonb payload
-        +jsonb headers
         +int timeout_seconds
+    }
+
+    class job_http_config_headers {
+        +uuid id PK
+        +uuid http_config_id FK
+        +text header_name
+        +text header_value
     }
 
     class job_runs {
@@ -76,6 +83,7 @@ classDiagram
 
     job_definitions "1" --> "0..*" job_runs : has
     job_definitions "1" --> "0..1" job_type_http_configs : http config
+    job_type_http_configs "1" --> "0..*" job_http_config_headers : headers
     job_definitions "1" --> "0..1" job_schedules : schedule
     job_runs "1" --> "0..*" job_run_events : emits
     job_runs "0..1" --> "0..*" job_runs : retried as

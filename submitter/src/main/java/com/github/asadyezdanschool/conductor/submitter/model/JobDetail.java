@@ -2,6 +2,8 @@ package com.github.asadyezdanschool.conductor.submitter.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.Map;
+
 public record JobDetail(
         @JsonProperty("jobFamilyId")     String jobFamilyId,
         @JsonProperty("jobDefinitionId") String jobDefinitionId,
@@ -17,6 +19,6 @@ public record JobDetail(
         @JsonProperty("url")             String url,
         @JsonProperty("method")          String method,
         @JsonProperty("payload")         String payload,
-        @JsonProperty("headers")         String headers,
+        @JsonProperty("headers")         Map<String, String> headers,
         @JsonProperty("timeoutSeconds")  int timeoutSeconds
 ) {}
