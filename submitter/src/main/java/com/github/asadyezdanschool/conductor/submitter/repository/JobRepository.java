@@ -15,6 +15,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -54,8 +55,11 @@ public class JobRepository {
                     }
                 }
 
-                insertHttpConfig(conn, jobDefinitionId, req.url(), req.method(),
-                        req.payload(), req.headers(), req.timeoutSeconds());
+                UUID httpConfigId = insertHttpConfigRaw(conn, jobDefinitionId, req.url(), req.method(),
+                        req.payload() != null ? toJson(req.payload()) : null, req.timeoutSeconds());
+                if (req.headers() != null) {
+                    insertHeaderRows(conn, httpConfigId, req.headers());
+                }
 
                 conn.commit();
                 log.info("Created job definition " + jobDefinitionId + " (family=" + jobFamilyId + ")");
@@ -73,14 +77,15 @@ public class JobRepository {
             try {
                 // Read current latest version with a row-level lock
                 UUID currentId;
+                UUID currentHttpConfigId;
                 int currentVersion;
                 String currentName, currentCron, currentUrl, currentMethod;
                 Integer currentTimeout;
-                String currentPayloadJson, currentHeadersJson;
+                String currentPayloadJson;
 
                 try (PreparedStatement ps = conn.prepareStatement(
                         "SELECT jd.id, jd.version, jd.name, jd.cron, " +
-                        "  c.url, c.method, c.payload::text, c.headers::text, c.timeout_seconds " +
+                        "  c.id AS http_config_id, c.url, c.method, c.payload::text, c.timeout_seconds " +
                         "FROM job_definitions jd " +
                         "JOIN job_type_http_configs c ON c.job_definition_id = jd.id " +
                         "WHERE jd.job_family_id = ? AND jd.is_latest = TRUE AND jd.is_deleted = FALSE " +
@@ -90,15 +95,15 @@ public class JobRepository {
                         if (!rs.next()) {
                             throw new NotFoundException("No job found for family id: " + familyId);
                         }
-                        currentId = (UUID) rs.getObject("id");
-                        currentVersion = rs.getInt("version");
-                        currentName = rs.getString("name");
-                        currentCron = rs.getString("cron");
-                        currentUrl = rs.getString("url");
-                        currentMethod = rs.getString("method");
-                        currentTimeout = rs.getInt("timeout_seconds");
-                        currentPayloadJson = rs.getString("payload");
-                        currentHeadersJson = rs.getString("headers");
+                        currentId           = (UUID) rs.getObject("id");
+                        currentVersion      = rs.getInt("version");
+                        currentName         = rs.getString("name");
+                        currentCron         = rs.getString("cron");
+                        currentHttpConfigId = (UUID) rs.getObject("http_config_id");
+                        currentUrl          = rs.getString("url");
+                        currentMethod       = rs.getString("method");
+                        currentTimeout      = rs.getInt("timeout_seconds");
+                        currentPayloadJson  = rs.getString("payload");
                     }
                 }
 
@@ -115,12 +120,7 @@ public class JobRepository {
                 String newUrl = req.url() != null ? req.url() : currentUrl;
                 String newMethod = req.method() != null ? req.method() : currentMethod;
                 Integer newTimeout = req.timeoutSeconds() != null ? req.timeoutSeconds() : currentTimeout;
-
-                // For payload/headers: if request field is present (even null explicitly), use request value;
-                // otherwise fall back to current. Since records can't distinguish omitted vs null, treat null
-                // as "keep current" for carry-forward semantics.
                 String newPayloadJson = req.payload() != null ? toJson(req.payload()) : currentPayloadJson;
-                String newHeadersJson = req.headers() != null ? toJson(req.headers()) : currentHeadersJson;
 
                 // Insert new version
                 UUID newDefinitionId;
@@ -141,8 +141,21 @@ public class JobRepository {
                     }
                 }
 
-                insertHttpConfigRaw(conn, newDefinitionId, newUrl, newMethod,
-                        newPayloadJson, newHeadersJson, newTimeout);
+                UUID newHttpConfigId = insertHttpConfigRaw(conn, newDefinitionId, newUrl, newMethod,
+                        newPayloadJson, newTimeout);
+
+                // Headers: carry forward from old config if not provided, else insert new rows
+                if (req.headers() != null) {
+                    insertHeaderRows(conn, newHttpConfigId, req.headers());
+                } else {
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "INSERT INTO job_http_config_headers (http_config_id, header_name, header_value) " +
+                            "SELECT ?, header_name, header_value FROM job_http_config_headers WHERE http_config_id = ?")) {
+                        ps.setObject(1, newHttpConfigId);
+                        ps.setObject(2, currentHttpConfigId);
+                        ps.executeUpdate();
+                    }
+                }
 
                 conn.commit();
                 log.info("Edited job family " + familyId + " → new version " + newVersion + " (id=" + newDefinitionId + ")");
@@ -195,22 +208,13 @@ public class JobRepository {
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
-    private void insertHttpConfig(Connection conn, UUID jobDefinitionId,
+    private UUID insertHttpConfigRaw(Connection conn, UUID jobDefinitionId,
             String url, String method,
-            java.util.Map<String, Object> payload, java.util.Map<String, String> headers,
-            Integer timeoutSeconds) throws SQLException {
-        String payloadJson = payload != null ? toJson(payload) : null;
-        String headersJson = headers != null ? toJson(headers) : null;
-        insertHttpConfigRaw(conn, jobDefinitionId, url, method, payloadJson, headersJson, timeoutSeconds);
-    }
-
-    private void insertHttpConfigRaw(Connection conn, UUID jobDefinitionId,
-            String url, String method,
-            String payloadJson, String headersJson, Integer timeoutSeconds) throws SQLException {
+            String payloadJson, Integer timeoutSeconds) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(
                 "INSERT INTO job_type_http_configs " +
-                "(job_definition_id, url, method, payload, headers, timeout_seconds) " +
-                "VALUES (?, ?, ?::request_type, ?::jsonb, ?::jsonb, ?)")) {
+                "(job_definition_id, url, method, payload, timeout_seconds) " +
+                "VALUES (?, ?, ?::request_type, ?::jsonb, ?) RETURNING id")) {
             ps.setObject(1, jobDefinitionId);
             ps.setString(2, url);
             ps.setString(3, method);
@@ -219,17 +223,30 @@ public class JobRepository {
             } else {
                 ps.setNull(4, Types.OTHER);
             }
-            if (headersJson != null) {
-                ps.setObject(5, headersJson, Types.OTHER);
-            } else {
-                ps.setNull(5, Types.OTHER);
-            }
             if (timeoutSeconds != null) {
-                ps.setInt(6, timeoutSeconds);
+                ps.setInt(5, timeoutSeconds);
             } else {
-                ps.setNull(6, Types.INTEGER);
+                ps.setNull(5, Types.INTEGER);
             }
-            ps.executeUpdate();
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return (UUID) rs.getObject(1);
+            }
+        }
+    }
+
+    private void insertHeaderRows(Connection conn, UUID httpConfigId,
+            Map<String, String> headers) throws SQLException {
+        if (headers == null || headers.isEmpty()) return;
+        try (PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO job_http_config_headers (http_config_id, header_name, header_value) VALUES (?, ?, ?)")) {
+            for (Map.Entry<String, String> entry : headers.entrySet()) {
+                ps.setObject(1, httpConfigId);
+                ps.setString(2, entry.getKey());
+                ps.setString(3, entry.getValue());
+                ps.addBatch();
+            }
+            ps.executeBatch();
         }
     }
 

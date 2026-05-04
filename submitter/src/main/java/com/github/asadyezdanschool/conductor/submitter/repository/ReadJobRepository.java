@@ -18,7 +18,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -79,38 +81,68 @@ public class ReadJobRepository {
                 "SELECT jd.job_family_id, jd.id AS job_definition_id, jd.version, jd.name, jd.cron, " +
                 "  jd.job_type::text, jd.is_parked, jd.max_retries, jd.created_at, " +
                 "  js.next_scheduled_at, js.last_triggered_at, " +
-                "  c.url, c.method::text, c.payload::text, c.headers::text, c.timeout_seconds " +
+                "  c.id AS http_config_id, c.url, c.method::text, c.payload::text, c.timeout_seconds " +
                 "FROM job_definitions jd " +
                 "LEFT JOIN job_schedules js ON js.job_definition_id = jd.id " +
                 "LEFT JOIN job_type_http_configs c ON c.job_definition_id = jd.id " +
                 "WHERE jd.job_family_id = ? AND jd.is_latest = TRUE AND jd.is_deleted = FALSE";
 
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setObject(1, familyId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (!rs.next()) {
-                    throw new NotFoundException("No job found for family id: " + familyId);
+        String headersSql =
+                "SELECT header_name, header_value " +
+                "FROM job_http_config_headers " +
+                "WHERE http_config_id = ?";
+
+        try (Connection conn = dataSource.getConnection()) {
+            UUID httpConfigId;
+            JobDetail detail;
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setObject(1, familyId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next()) {
+                        throw new NotFoundException("No job found for family id: " + familyId);
+                    }
+                    httpConfigId = rs.getObject("http_config_id") != null
+                            ? (UUID) rs.getObject("http_config_id") : null;
+                    detail = new JobDetail(
+                            rs.getObject("job_family_id").toString(),
+                            rs.getObject("job_definition_id").toString(),
+                            rs.getInt("version"),
+                            rs.getString("name"),
+                            rs.getString("cron"),
+                            rs.getString("job_type"),
+                            rs.getBoolean("is_parked"),
+                            rs.getInt("max_retries"),
+                            tsToString(rs.getTimestamp("created_at")),
+                            tsToString(rs.getTimestamp("next_scheduled_at")),
+                            tsToString(rs.getTimestamp("last_triggered_at")),
+                            rs.getString("url"),
+                            rs.getString("method"),
+                            rs.getString("payload"),
+                            null,
+                            rs.getInt("timeout_seconds")
+                    );
                 }
-                return new JobDetail(
-                        rs.getObject("job_family_id").toString(),
-                        rs.getObject("job_definition_id").toString(),
-                        rs.getInt("version"),
-                        rs.getString("name"),
-                        rs.getString("cron"),
-                        rs.getString("job_type"),
-                        rs.getBoolean("is_parked"),
-                        rs.getInt("max_retries"),
-                        tsToString(rs.getTimestamp("created_at")),
-                        tsToString(rs.getTimestamp("next_scheduled_at")),
-                        tsToString(rs.getTimestamp("last_triggered_at")),
-                        rs.getString("url"),
-                        rs.getString("method"),
-                        rs.getString("payload"),
-                        rs.getString("headers"),
-                        rs.getInt("timeout_seconds")
-                );
             }
+            if (httpConfigId == null) {
+                return detail;
+            }
+            Map<String, String> headers = new HashMap<>();
+            try (PreparedStatement ps = conn.prepareStatement(headersSql)) {
+                ps.setObject(1, httpConfigId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        headers.put(rs.getString("header_name"), rs.getString("header_value"));
+                    }
+                }
+            }
+            return new JobDetail(
+                    detail.jobFamilyId(), detail.jobDefinitionId(), detail.version(),
+                    detail.name(), detail.cron(), detail.jobType(), detail.isParked(),
+                    detail.maxRetries(), detail.createdAt(), detail.nextScheduledAt(),
+                    detail.lastTriggeredAt(), detail.url(), detail.method(), detail.payload(),
+                    headers.isEmpty() ? null : headers,
+                    detail.timeoutSeconds()
+            );
         } catch (NotFoundException e) {
             throw e;
         } catch (SQLException e) {

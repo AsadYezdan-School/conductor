@@ -31,6 +31,15 @@ enum JobStatus {
 }
 
 // ---------------------------------------------------------------------------
+// Shared sub-messages
+// ---------------------------------------------------------------------------
+
+message HttpHeader {
+  string name  = 1;
+  string value = 2;
+}
+
+// ---------------------------------------------------------------------------
 // GetHttpRunDetails — worker fetches job config before executing
 // ---------------------------------------------------------------------------
 
@@ -45,8 +54,7 @@ message GetHttpRunDetailsResponse {
   string method            = 4;
   // JSON string; empty if not set on the job definition
   string payload           = 5;
-  // JSON string; empty if not set on the job definition
-  string headers           = 6;
+  repeated HttpHeader headers = 6;
   int32  timeout_seconds   = 7;
   // Which attempt this is (1 = first, 2 = first retry, etc.)
   int32  attempt_number    = 8;

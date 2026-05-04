@@ -2,7 +2,6 @@ package processor
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -140,14 +139,8 @@ func (p *HTTPProcessor) execute(ctx context.Context, details *pb.GetHttpRunDetai
 		req.Header.Set("Content-Type", "application/json")
 	}
 
-	// Parse and apply custom headers
-	if details.Headers != "" {
-		var headers map[string]string
-		if jsonErr := json.Unmarshal([]byte(details.Headers), &headers); jsonErr == nil {
-			for k, v := range headers {
-				req.Header.Set(k, v)
-			}
-		}
+	for _, h := range details.Headers {
+		req.Header.Set(h.Name, h.Value)
 	}
 
 	resp, err := p.httpClient.Do(req)

@@ -1,5 +1,6 @@
 package com.github.asadyezdanschool.conductor.scheduler.model;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -7,16 +8,15 @@ import java.util.UUID;
  * Returned by {@link com.github.asadyezdanschool.conductor.scheduler.service.JobExecutionService#getHttpRunDetails}.
  */
 public record HttpRunDetails(
-        UUID   jobRunId,
-        UUID   jobDefinitionId,
-        UUID   jobFamilyId,
-        String url,
-        String method,
+        UUID             jobRunId,
+        UUID             jobDefinitionId,
+        UUID             jobFamilyId,
+        String           url,
+        String           method,
         /** JSON string; null if not set on the job definition. */
-        String payload,
-        /** JSON string; null if not set on the job definition. */
-        String headers,
-        int    timeoutSeconds,
-        int    attemptNumber,
-        int    maxRetries
+        String           payload,
+        List<HttpHeader> headers,
+        int              timeoutSeconds,
+        int              attemptNumber,
+        int              maxRetries
 ) {}

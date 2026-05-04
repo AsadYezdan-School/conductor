@@ -1,6 +1,7 @@
 package com.github.asadyezdanschool.conductor.scheduler.repository;
 
 import com.github.asadyezdanschool.conductor.scheduler.cache.CachedJob;
+import com.github.asadyezdanschool.conductor.scheduler.model.HttpHeader;
 import com.github.asadyezdanschool.conductor.scheduler.model.HttpRunDetails;
 
 import javax.inject.Inject;
@@ -9,6 +10,7 @@ import javax.sql.DataSource;
 import java.sql.*;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -83,8 +85,13 @@ public class JobRepository {
                 RETURNING id, job_family_id, version
                 """;
         String httpSql = """
-                INSERT INTO job_type_http_configs (job_definition_id, url, method, payload, headers, timeout_seconds)
-                VALUES (?, ?, ?::request_type, ?::jsonb, ?::jsonb, ?)
+                INSERT INTO job_type_http_configs (job_definition_id, url, method, payload, timeout_seconds)
+                VALUES (?, ?, ?::request_type, ?::jsonb, ?)
+                RETURNING id
+                """;
+        String headerSql = """
+                INSERT INTO job_http_config_headers (http_config_id, header_name, header_value)
+                VALUES (?, ?, ?)
                 """;
         try (Connection c = dataSource.getConnection()) {
             c.setAutoCommit(false);
@@ -103,14 +110,28 @@ public class JobRepository {
                         version      = rs.getInt(3);
                     }
                 }
+                UUID httpConfigId;
                 try (PreparedStatement ps = c.prepareStatement(httpSql)) {
                     ps.setObject(1, definitionId);
                     ps.setString(2, params.url());
                     ps.setString(3, params.method());
                     ps.setObject(4, params.payload(), Types.OTHER);
-                    ps.setObject(5, params.headers(), Types.OTHER);
-                    ps.setInt(6, params.timeoutSeconds());
-                    ps.executeUpdate();
+                    ps.setInt(5, params.timeoutSeconds());
+                    try (ResultSet rs = ps.executeQuery()) {
+                        rs.next();
+                        httpConfigId = (UUID) rs.getObject(1);
+                    }
+                }
+                if (params.headers() != null && !params.headers().isEmpty()) {
+                    try (PreparedStatement ps = c.prepareStatement(headerSql)) {
+                        for (HttpHeader h : params.headers()) {
+                            ps.setObject(1, httpConfigId);
+                            ps.setString(2, h.name());
+                            ps.setString(3, h.value());
+                            ps.addBatch();
+                        }
+                        ps.executeBatch();
+                    }
                 }
                 c.commit();
                 return new CreatedJobResult(definitionId, familyId, version);
@@ -132,7 +153,7 @@ public class JobRepository {
     public EditedJobResult editJobDefinition(UUID familyId, EditJobParams params) throws SQLException {
         String selectSql = """
                 SELECT jd.id, jd.version, jd.name, jd.cron,
-                       c.url, c.method::text, c.payload::text, c.headers::text, c.timeout_seconds
+                       c.id AS http_config_id, c.url, c.method::text, c.payload::text, c.timeout_seconds
                 FROM job_definitions jd
                 JOIN job_type_http_configs c ON c.job_definition_id = jd.id
                 WHERE jd.job_family_id = ? AND jd.is_latest = TRUE AND jd.is_deleted = FALSE
@@ -148,8 +169,19 @@ public class JobRepository {
                 RETURNING id, version
                 """;
         String insertHttpSql = """
-                INSERT INTO job_type_http_configs (job_definition_id, url, method, payload, headers, timeout_seconds)
-                VALUES (?, ?, ?::request_type, ?::jsonb, ?::jsonb, ?)
+                INSERT INTO job_type_http_configs (job_definition_id, url, method, payload, timeout_seconds)
+                VALUES (?, ?, ?::request_type, ?::jsonb, ?)
+                RETURNING id
+                """;
+        String copyHeadersSql = """
+                INSERT INTO job_http_config_headers (http_config_id, header_name, header_value)
+                SELECT ?, header_name, header_value
+                FROM job_http_config_headers
+                WHERE http_config_id = ?
+                """;
+        String insertHeaderSql = """
+                INSERT INTO job_http_config_headers (http_config_id, header_name, header_value)
+                VALUES (?, ?, ?)
                 """;
         String migrateScheduleSql = """
                 INSERT INTO job_schedules (job_definition_id, last_triggered_at, next_scheduled_at)
@@ -163,9 +195,9 @@ public class JobRepository {
             try {
                 // Fetch current latest
                 UUID   oldId;
+                UUID   oldHttpConfigId;
                 int    oldVersion;
-                String existingName, existingCron, existingUrl, existingMethod,
-                        existingPayload, existingHeaders;
+                String existingName, existingCron, existingUrl, existingMethod, existingPayload;
                 int    existingTimeout;
                 try (PreparedStatement ps = c.prepareStatement(selectSql)) {
                     ps.setObject(1, familyId);
@@ -173,14 +205,14 @@ public class JobRepository {
                         if (!rs.next()) {
                             throw new NotFoundException("No active job for family: " + familyId);
                         }
-                        oldId          = (UUID) rs.getObject(1);
-                        oldVersion     = rs.getInt(2);
-                        existingName   = rs.getString(3);
-                        existingCron   = rs.getString(4);
-                        existingUrl    = rs.getString(5);
-                        existingMethod = rs.getString(6);
-                        existingPayload = rs.getString(7);
-                        existingHeaders = rs.getString(8);
+                        oldId           = (UUID) rs.getObject(1);
+                        oldVersion      = rs.getInt(2);
+                        existingName    = rs.getString(3);
+                        existingCron    = rs.getString(4);
+                        oldHttpConfigId = (UUID) rs.getObject(5);
+                        existingUrl     = rs.getString(6);
+                        existingMethod  = rs.getString(7);
+                        existingPayload = rs.getString(8);
                         existingTimeout = rs.getInt(9);
                     }
                 }
@@ -192,12 +224,11 @@ public class JobRepository {
                 }
 
                 // Insert new version with carry-forward
-                String newName    = params.name()          != null ? params.name()          : existingName;
-                String newCron    = params.cron()          != null ? params.cron()          : existingCron;
-                String newUrl     = params.url()           != null ? params.url()           : existingUrl;
-                String newMethod  = params.method()        != null ? params.method()        : existingMethod;
-                String newPayload = params.payload()       != null ? params.payload()       : existingPayload;
-                String newHeaders = params.headers()       != null ? params.headers()       : existingHeaders;
+                String newName    = params.name()           != null ? params.name()           : existingName;
+                String newCron    = params.cron()           != null ? params.cron()           : existingCron;
+                String newUrl     = params.url()            != null ? params.url()            : existingUrl;
+                String newMethod  = params.method()         != null ? params.method()         : existingMethod;
+                String newPayload = params.payload()        != null ? params.payload()        : existingPayload;
                 int    newTimeout = params.timeoutSeconds() != null ? params.timeoutSeconds() : existingTimeout;
                 int    newVersion = oldVersion + 1;
 
@@ -214,14 +245,36 @@ public class JobRepository {
                 }
 
                 // Insert new HTTP config
+                UUID newHttpConfigId;
                 try (PreparedStatement ps = c.prepareStatement(insertHttpSql)) {
                     ps.setObject(1, newId);
                     ps.setString(2, newUrl);
                     ps.setString(3, newMethod);
                     ps.setObject(4, newPayload, Types.OTHER);
-                    ps.setObject(5, newHeaders, Types.OTHER);
-                    ps.setInt(6, newTimeout);
-                    ps.executeUpdate();
+                    ps.setInt(5, newTimeout);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        rs.next();
+                        newHttpConfigId = (UUID) rs.getObject(1);
+                    }
+                }
+
+                // Headers: carry forward from old config if not provided, else insert new rows
+                if (params.headers() == null || params.headers().isEmpty()) {
+                    try (PreparedStatement ps = c.prepareStatement(copyHeadersSql)) {
+                        ps.setObject(1, newHttpConfigId);
+                        ps.setObject(2, oldHttpConfigId);
+                        ps.executeUpdate();
+                    }
+                } else {
+                    try (PreparedStatement ps = c.prepareStatement(insertHeaderSql)) {
+                        for (HttpHeader h : params.headers()) {
+                            ps.setObject(1, newHttpConfigId);
+                            ps.setString(2, h.name());
+                            ps.setString(3, h.value());
+                            ps.addBatch();
+                        }
+                        ps.executeBatch();
+                    }
                 }
 
                 // Migrate job_schedules row to new definition ID
@@ -389,10 +442,12 @@ public class JobRepository {
     public Optional<HttpRunDetails> getHttpRunDetails(UUID jobRunId) throws SQLException {
         String sql = """
                 SELECT jr.id, jd.id, jr.job_family_id, c.url, c.method::text, c.payload::text,
-                       c.headers::text, c.timeout_seconds, jr.attempt_number, jd.max_retries
+                       c.timeout_seconds, jr.attempt_number, jd.max_retries,
+                       h.header_name, h.header_value
                 FROM job_runs jr
-                JOIN job_definitions jd ON jd.id = jr.job_definition_id
-                JOIN job_type_http_configs c ON c.job_definition_id = jd.id
+                JOIN job_definitions jd         ON jd.id = jr.job_definition_id
+                JOIN job_type_http_configs c     ON c.job_definition_id = jd.id
+                LEFT JOIN job_http_config_headers h ON h.http_config_id = c.id
                 WHERE jr.id = ?
                 """;
         try (Connection c = dataSource.getConnection();
@@ -400,17 +455,26 @@ public class JobRepository {
             ps.setObject(1, jobRunId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) return Optional.empty();
+                UUID   runId        = (UUID) rs.getObject(1);
+                UUID   definitionId = (UUID) rs.getObject(2);
+                UUID   familyId     = (UUID) rs.getObject(3);
+                String url          = rs.getString(4);
+                String method       = rs.getString(5);
+                String payload      = rs.getString(6);
+                int    timeout      = rs.getInt(7);
+                int    attempt      = rs.getInt(8);
+                int    maxRetries   = rs.getInt(9);
+                List<HttpHeader> headers = new ArrayList<>();
+                do {
+                    String name  = rs.getString(10);
+                    String value = rs.getString(11);
+                    if (name != null) headers.add(new HttpHeader(name, value));
+                } while (rs.next());
                 return Optional.of(new HttpRunDetails(
-                        (UUID) rs.getObject(1),
-                        (UUID) rs.getObject(2),
-                        (UUID) rs.getObject(3),
-                        rs.getString(4),
-                        rs.getString(5),
-                        rs.getString(6),
-                        rs.getString(7),
-                        rs.getInt(8),
-                        rs.getInt(9),
-                        rs.getInt(10)
+                        runId, definitionId, familyId,
+                        url, method, payload,
+                        Collections.unmodifiableList(headers),
+                        timeout, attempt, maxRetries
                 ));
             }
         }
@@ -626,25 +690,25 @@ public class JobRepository {
     ) {}
 
     public record CreateJobParams(
-            String  name,
-            String  cron,
-            String  jobType,
+            String           name,
+            String           cron,
+            String           jobType,
             // HTTP config fields
-            String  url,
-            String  method,
-            String  payload,
-            String  headers,
-            int     timeoutSeconds
+            String           url,
+            String           method,
+            String           payload,
+            List<HttpHeader> headers,
+            int              timeoutSeconds
     ) {}
 
     public record EditJobParams(
-            String  name,           // null = carry forward
-            String  cron,           // null = carry forward
-            String  url,            // null = carry forward
-            String  method,         // null = carry forward
-            String  payload,        // null = carry forward
-            String  headers,        // null = carry forward
-            Integer timeoutSeconds  // null = carry forward
+            String           name,           // null = carry forward
+            String           cron,           // null = carry forward
+            String           url,            // null = carry forward
+            String           method,         // null = carry forward
+            String           payload,        // null = carry forward
+            List<HttpHeader> headers,        // null or empty = carry forward
+            Integer          timeoutSeconds  // null = carry forward
     ) {}
 
     public record CreatedJobResult(UUID definitionId, UUID familyId, int version) {}

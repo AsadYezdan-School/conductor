@@ -59,21 +59,28 @@ public interface HttpEditConfigOrBuilder extends
       getPayloadBytes();
 
   /**
-   * <code>optional string headers = 4;</code>
-   * @return Whether the headers field is set.
+   * <code>repeated .conductor.execution.HttpHeader headers = 4;</code>
    */
-  boolean hasHeaders();
+  java.util.List<com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader> 
+      getHeadersList();
   /**
-   * <code>optional string headers = 4;</code>
-   * @return The headers.
+   * <code>repeated .conductor.execution.HttpHeader headers = 4;</code>
    */
-  java.lang.String getHeaders();
+  com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader getHeaders(int index);
   /**
-   * <code>optional string headers = 4;</code>
-   * @return The bytes for headers.
+   * <code>repeated .conductor.execution.HttpHeader headers = 4;</code>
    */
-  com.google.protobuf.ByteString
-      getHeadersBytes();
+  int getHeadersCount();
+  /**
+   * <code>repeated .conductor.execution.HttpHeader headers = 4;</code>
+   */
+  java.util.List<? extends com.github.asadyezdanschool.conductor.grpc.execution.HttpHeaderOrBuilder> 
+      getHeadersOrBuilderList();
+  /**
+   * <code>repeated .conductor.execution.HttpHeader headers = 4;</code>
+   */
+  com.github.asadyezdanschool.conductor.grpc.execution.HttpHeaderOrBuilder getHeadersOrBuilder(
+      int index);
 
   /**
    * <code>optional int32 timeout_seconds = 5;</code>

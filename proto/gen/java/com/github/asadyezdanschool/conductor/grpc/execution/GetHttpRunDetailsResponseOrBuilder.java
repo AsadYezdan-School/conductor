@@ -76,24 +76,28 @@ public interface GetHttpRunDetailsResponseOrBuilder extends
       getPayloadBytes();
 
   /**
-   * <pre>
-   * JSON string; empty if not set on the job definition
-   * </pre>
-   *
-   * <code>string headers = 6;</code>
-   * @return The headers.
+   * <code>repeated .conductor.execution.HttpHeader headers = 6;</code>
    */
-  java.lang.String getHeaders();
+  java.util.List<com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader> 
+      getHeadersList();
   /**
-   * <pre>
-   * JSON string; empty if not set on the job definition
-   * </pre>
-   *
-   * <code>string headers = 6;</code>
-   * @return The bytes for headers.
+   * <code>repeated .conductor.execution.HttpHeader headers = 6;</code>
    */
-  com.google.protobuf.ByteString
-      getHeadersBytes();
+  com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader getHeaders(int index);
+  /**
+   * <code>repeated .conductor.execution.HttpHeader headers = 6;</code>
+   */
+  int getHeadersCount();
+  /**
+   * <code>repeated .conductor.execution.HttpHeader headers = 6;</code>
+   */
+  java.util.List<? extends com.github.asadyezdanschool.conductor.grpc.execution.HttpHeaderOrBuilder> 
+      getHeadersOrBuilderList();
+  /**
+   * <code>repeated .conductor.execution.HttpHeader headers = 6;</code>
+   */
+  com.github.asadyezdanschool.conductor.grpc.execution.HttpHeaderOrBuilder getHeadersOrBuilder(
+      int index);
 
   /**
    * <code>int32 timeout_seconds = 7;</code>

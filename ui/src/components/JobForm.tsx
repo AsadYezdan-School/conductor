@@ -64,7 +64,7 @@ export function JobForm({ existing, onClose }: Props) {
         method: existing.method,
         timeoutSeconds: existing.timeoutSeconds,
         payloadText: existing.payload ? JSON.stringify(JSON.parse(existing.payload), null, 2) : '',
-        headersText: existing.headers ? JSON.stringify(JSON.parse(existing.headers), null, 2) : '',
+        headersText: existing.headers ? JSON.stringify(existing.headers, null, 2) : '',
       });
     }
   }, [existing, reset]);

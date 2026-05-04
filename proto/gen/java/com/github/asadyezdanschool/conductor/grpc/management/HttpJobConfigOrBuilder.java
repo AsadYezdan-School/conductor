@@ -52,24 +52,28 @@ public interface HttpJobConfigOrBuilder extends
       getPayloadBytes();
 
   /**
-   * <pre>
-   * JSON string; omit or leave empty for no custom headers
-   * </pre>
-   *
-   * <code>string headers = 4;</code>
-   * @return The headers.
+   * <code>repeated .conductor.execution.HttpHeader headers = 4;</code>
    */
-  java.lang.String getHeaders();
+  java.util.List<com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader> 
+      getHeadersList();
   /**
-   * <pre>
-   * JSON string; omit or leave empty for no custom headers
-   * </pre>
-   *
-   * <code>string headers = 4;</code>
-   * @return The bytes for headers.
+   * <code>repeated .conductor.execution.HttpHeader headers = 4;</code>
    */
-  com.google.protobuf.ByteString
-      getHeadersBytes();
+  com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader getHeaders(int index);
+  /**
+   * <code>repeated .conductor.execution.HttpHeader headers = 4;</code>
+   */
+  int getHeadersCount();
+  /**
+   * <code>repeated .conductor.execution.HttpHeader headers = 4;</code>
+   */
+  java.util.List<? extends com.github.asadyezdanschool.conductor.grpc.execution.HttpHeaderOrBuilder> 
+      getHeadersOrBuilderList();
+  /**
+   * <code>repeated .conductor.execution.HttpHeader headers = 4;</code>
+   */
+  com.github.asadyezdanschool.conductor.grpc.execution.HttpHeaderOrBuilder getHeadersOrBuilder(
+      int index);
 
   /**
    * <pre>

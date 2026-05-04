@@ -3,6 +3,7 @@ package com.github.asadyezdanschool.conductor.scheduler.service;
 import com.github.asadyezdanschool.conductor.grpc.management.*;
 import com.github.asadyezdanschool.conductor.scheduler.cache.CachedJob;
 import com.github.asadyezdanschool.conductor.scheduler.cache.JobCache;
+import com.github.asadyezdanschool.conductor.scheduler.model.HttpHeader;
 import com.github.asadyezdanschool.conductor.scheduler.model.JobType;
 import com.github.asadyezdanschool.conductor.scheduler.repository.JobRepository;
 import com.github.asadyezdanschool.conductor.scheduler.scheduling.CronEvaluator;
@@ -11,7 +12,9 @@ import io.grpc.Status;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Default implementation of {@link JobManagementService}.
@@ -65,6 +68,9 @@ public class JobManagementServiceImpl implements JobManagementService {
         }
 
         HttpJobConfig httpConfig = request.getHttpConfig();
+        List<HttpHeader> headers = httpConfig.getHeadersList().stream()
+                .map(h -> new HttpHeader(h.getName(), h.getValue()))
+                .collect(Collectors.toList());
         JobRepository.CreateJobParams params = new JobRepository.CreateJobParams(
                 request.getName(),
                 request.getCron(),
@@ -72,7 +78,7 @@ public class JobManagementServiceImpl implements JobManagementService {
                 httpConfig.getUrl(),
                 httpConfig.getMethod(),
                 httpConfig.getPayload().isEmpty() ? null : httpConfig.getPayload(),
-                httpConfig.getHeaders().isEmpty() ? null : httpConfig.getHeaders(),
+                headers,
                 httpConfig.getTimeoutSeconds() == 0 ? 30 : httpConfig.getTimeoutSeconds()
         );
 
@@ -123,14 +129,19 @@ public class JobManagementServiceImpl implements JobManagementService {
         UUID familyId = UUID.fromString(request.getJobFamilyId());
 
         // Extract optional HTTP config fields
-        String url = null, method = null, payload = null, headers = null;
+        String url = null, method = null, payload = null;
+        List<HttpHeader> headers = null;
         Integer timeoutSeconds = null;
         if (request.getConfigCase() == EditJobRequest.ConfigCase.HTTP_CONFIG) {
             HttpEditConfig httpEdit = request.getHttpConfig();
             if (httpEdit.hasUrl())            url            = httpEdit.getUrl();
             if (httpEdit.hasMethod())         method         = httpEdit.getMethod();
             if (httpEdit.hasPayload())        payload        = httpEdit.getPayload();
-            if (httpEdit.hasHeaders())        headers        = httpEdit.getHeaders();
+            if (!httpEdit.getHeadersList().isEmpty()) {
+                headers = httpEdit.getHeadersList().stream()
+                        .map(h -> new HttpHeader(h.getName(), h.getValue()))
+                        .collect(Collectors.toList());
+            }
             if (httpEdit.hasTimeoutSeconds()) timeoutSeconds = httpEdit.getTimeoutSeconds();
         }
 

@@ -21,7 +21,7 @@ private static final long serialVersionUID = 0L;
     url_ = "";
     method_ = "";
     payload_ = "";
-    headers_ = "";
+    headers_ = java.util.Collections.emptyList();
   }
 
   @java.lang.Override
@@ -254,49 +254,43 @@ private static final long serialVersionUID = 0L;
 
   public static final int HEADERS_FIELD_NUMBER = 6;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object headers_ = "";
+  private java.util.List<com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader> headers_;
   /**
-   * <pre>
-   * JSON string; empty if not set on the job definition
-   * </pre>
-   *
-   * <code>string headers = 6;</code>
-   * @return The headers.
+   * <code>repeated .conductor.execution.HttpHeader headers = 6;</code>
    */
   @java.lang.Override
-  public java.lang.String getHeaders() {
-    java.lang.Object ref = headers_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      headers_ = s;
-      return s;
-    }
+  public java.util.List<com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader> getHeadersList() {
+    return headers_;
   }
   /**
-   * <pre>
-   * JSON string; empty if not set on the job definition
-   * </pre>
-   *
-   * <code>string headers = 6;</code>
-   * @return The bytes for headers.
+   * <code>repeated .conductor.execution.HttpHeader headers = 6;</code>
    */
   @java.lang.Override
-  public com.google.protobuf.ByteString
-      getHeadersBytes() {
-    java.lang.Object ref = headers_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      headers_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
+  public java.util.List<? extends com.github.asadyezdanschool.conductor.grpc.execution.HttpHeaderOrBuilder> 
+      getHeadersOrBuilderList() {
+    return headers_;
+  }
+  /**
+   * <code>repeated .conductor.execution.HttpHeader headers = 6;</code>
+   */
+  @java.lang.Override
+  public int getHeadersCount() {
+    return headers_.size();
+  }
+  /**
+   * <code>repeated .conductor.execution.HttpHeader headers = 6;</code>
+   */
+  @java.lang.Override
+  public com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader getHeaders(int index) {
+    return headers_.get(index);
+  }
+  /**
+   * <code>repeated .conductor.execution.HttpHeader headers = 6;</code>
+   */
+  @java.lang.Override
+  public com.github.asadyezdanschool.conductor.grpc.execution.HttpHeaderOrBuilder getHeadersOrBuilder(
+      int index) {
+    return headers_.get(index);
   }
 
   public static final int TIMEOUT_SECONDS_FIELD_NUMBER = 7;
@@ -369,8 +363,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(payload_)) {
       com.google.protobuf.GeneratedMessageV3.writeString(output, 5, payload_);
     }
-    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(headers_)) {
-      com.google.protobuf.GeneratedMessageV3.writeString(output, 6, headers_);
+    for (int i = 0; i < headers_.size(); i++) {
+      output.writeMessage(6, headers_.get(i));
     }
     if (timeoutSeconds_ != 0) {
       output.writeInt32(7, timeoutSeconds_);
@@ -405,8 +399,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(payload_)) {
       size += com.google.protobuf.GeneratedMessageV3.computeStringSize(5, payload_);
     }
-    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(headers_)) {
-      size += com.google.protobuf.GeneratedMessageV3.computeStringSize(6, headers_);
+    for (int i = 0; i < headers_.size(); i++) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(6, headers_.get(i));
     }
     if (timeoutSeconds_ != 0) {
       size += com.google.protobuf.CodedOutputStream
@@ -445,8 +440,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getMethod())) return false;
     if (!getPayload()
         .equals(other.getPayload())) return false;
-    if (!getHeaders()
-        .equals(other.getHeaders())) return false;
+    if (!getHeadersList()
+        .equals(other.getHeadersList())) return false;
     if (getTimeoutSeconds()
         != other.getTimeoutSeconds()) return false;
     if (getAttemptNumber()
@@ -474,8 +469,10 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getMethod().hashCode();
     hash = (37 * hash) + PAYLOAD_FIELD_NUMBER;
     hash = (53 * hash) + getPayload().hashCode();
-    hash = (37 * hash) + HEADERS_FIELD_NUMBER;
-    hash = (53 * hash) + getHeaders().hashCode();
+    if (getHeadersCount() > 0) {
+      hash = (37 * hash) + HEADERS_FIELD_NUMBER;
+      hash = (53 * hash) + getHeadersList().hashCode();
+    }
     hash = (37 * hash) + TIMEOUT_SECONDS_FIELD_NUMBER;
     hash = (53 * hash) + getTimeoutSeconds();
     hash = (37 * hash) + ATTEMPT_NUMBER_FIELD_NUMBER;
@@ -616,7 +613,13 @@ private static final long serialVersionUID = 0L;
       url_ = "";
       method_ = "";
       payload_ = "";
-      headers_ = "";
+      if (headersBuilder_ == null) {
+        headers_ = java.util.Collections.emptyList();
+      } else {
+        headers_ = null;
+        headersBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000020);
       timeoutSeconds_ = 0;
       attemptNumber_ = 0;
       maxRetries_ = 0;
@@ -646,9 +649,22 @@ private static final long serialVersionUID = 0L;
     @java.lang.Override
     public com.github.asadyezdanschool.conductor.grpc.execution.GetHttpRunDetailsResponse buildPartial() {
       com.github.asadyezdanschool.conductor.grpc.execution.GetHttpRunDetailsResponse result = new com.github.asadyezdanschool.conductor.grpc.execution.GetHttpRunDetailsResponse(this);
+      buildPartialRepeatedFields(result);
       if (bitField0_ != 0) { buildPartial0(result); }
       onBuilt();
       return result;
+    }
+
+    private void buildPartialRepeatedFields(com.github.asadyezdanschool.conductor.grpc.execution.GetHttpRunDetailsResponse result) {
+      if (headersBuilder_ == null) {
+        if (((bitField0_ & 0x00000020) != 0)) {
+          headers_ = java.util.Collections.unmodifiableList(headers_);
+          bitField0_ = (bitField0_ & ~0x00000020);
+        }
+        result.headers_ = headers_;
+      } else {
+        result.headers_ = headersBuilder_.build();
+      }
     }
 
     private void buildPartial0(com.github.asadyezdanschool.conductor.grpc.execution.GetHttpRunDetailsResponse result) {
@@ -667,9 +683,6 @@ private static final long serialVersionUID = 0L;
       }
       if (((from_bitField0_ & 0x00000010) != 0)) {
         result.payload_ = payload_;
-      }
-      if (((from_bitField0_ & 0x00000020) != 0)) {
-        result.headers_ = headers_;
       }
       if (((from_bitField0_ & 0x00000040) != 0)) {
         result.timeoutSeconds_ = timeoutSeconds_;
@@ -751,10 +764,31 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000010;
         onChanged();
       }
-      if (!other.getHeaders().isEmpty()) {
-        headers_ = other.headers_;
-        bitField0_ |= 0x00000020;
-        onChanged();
+      if (headersBuilder_ == null) {
+        if (!other.headers_.isEmpty()) {
+          if (headers_.isEmpty()) {
+            headers_ = other.headers_;
+            bitField0_ = (bitField0_ & ~0x00000020);
+          } else {
+            ensureHeadersIsMutable();
+            headers_.addAll(other.headers_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.headers_.isEmpty()) {
+          if (headersBuilder_.isEmpty()) {
+            headersBuilder_.dispose();
+            headersBuilder_ = null;
+            headers_ = other.headers_;
+            bitField0_ = (bitField0_ & ~0x00000020);
+            headersBuilder_ = 
+              com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
+                 getHeadersFieldBuilder() : null;
+          } else {
+            headersBuilder_.addAllMessages(other.headers_);
+          }
+        }
       }
       if (other.getTimeoutSeconds() != 0) {
         setTimeoutSeconds(other.getTimeoutSeconds());
@@ -817,8 +851,16 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 42
             case 50: {
-              headers_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000020;
+              com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader m =
+                  input.readMessage(
+                      com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader.parser(),
+                      extensionRegistry);
+              if (headersBuilder_ == null) {
+                ensureHeadersIsMutable();
+                headers_.add(m);
+              } else {
+                headersBuilder_.addMessage(m);
+              }
               break;
             } // case 50
             case 56: {
@@ -1233,96 +1275,244 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.lang.Object headers_ = "";
+    private java.util.List<com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader> headers_ =
+      java.util.Collections.emptyList();
+    private void ensureHeadersIsMutable() {
+      if (!((bitField0_ & 0x00000020) != 0)) {
+        headers_ = new java.util.ArrayList<com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader>(headers_);
+        bitField0_ |= 0x00000020;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilderV3<
+        com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader, com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader.Builder, com.github.asadyezdanschool.conductor.grpc.execution.HttpHeaderOrBuilder> headersBuilder_;
+
     /**
-     * <pre>
-     * JSON string; empty if not set on the job definition
-     * </pre>
-     *
-     * <code>string headers = 6;</code>
-     * @return The headers.
+     * <code>repeated .conductor.execution.HttpHeader headers = 6;</code>
      */
-    public java.lang.String getHeaders() {
-      java.lang.Object ref = headers_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        headers_ = s;
-        return s;
+    public java.util.List<com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader> getHeadersList() {
+      if (headersBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(headers_);
       } else {
-        return (java.lang.String) ref;
+        return headersBuilder_.getMessageList();
       }
     }
     /**
-     * <pre>
-     * JSON string; empty if not set on the job definition
-     * </pre>
-     *
-     * <code>string headers = 6;</code>
-     * @return The bytes for headers.
+     * <code>repeated .conductor.execution.HttpHeader headers = 6;</code>
      */
-    public com.google.protobuf.ByteString
-        getHeadersBytes() {
-      java.lang.Object ref = headers_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        headers_ = b;
-        return b;
+    public int getHeadersCount() {
+      if (headersBuilder_ == null) {
+        return headers_.size();
       } else {
-        return (com.google.protobuf.ByteString) ref;
+        return headersBuilder_.getCount();
       }
     }
     /**
-     * <pre>
-     * JSON string; empty if not set on the job definition
-     * </pre>
-     *
-     * <code>string headers = 6;</code>
-     * @param value The headers to set.
-     * @return This builder for chaining.
+     * <code>repeated .conductor.execution.HttpHeader headers = 6;</code>
+     */
+    public com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader getHeaders(int index) {
+      if (headersBuilder_ == null) {
+        return headers_.get(index);
+      } else {
+        return headersBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <code>repeated .conductor.execution.HttpHeader headers = 6;</code>
      */
     public Builder setHeaders(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      headers_ = value;
-      bitField0_ |= 0x00000020;
-      onChanged();
+        int index, com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader value) {
+      if (headersBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureHeadersIsMutable();
+        headers_.set(index, value);
+        onChanged();
+      } else {
+        headersBuilder_.setMessage(index, value);
+      }
       return this;
     }
     /**
-     * <pre>
-     * JSON string; empty if not set on the job definition
-     * </pre>
-     *
-     * <code>string headers = 6;</code>
-     * @return This builder for chaining.
+     * <code>repeated .conductor.execution.HttpHeader headers = 6;</code>
+     */
+    public Builder setHeaders(
+        int index, com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader.Builder builderForValue) {
+      if (headersBuilder_ == null) {
+        ensureHeadersIsMutable();
+        headers_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        headersBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <code>repeated .conductor.execution.HttpHeader headers = 6;</code>
+     */
+    public Builder addHeaders(com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader value) {
+      if (headersBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureHeadersIsMutable();
+        headers_.add(value);
+        onChanged();
+      } else {
+        headersBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <code>repeated .conductor.execution.HttpHeader headers = 6;</code>
+     */
+    public Builder addHeaders(
+        int index, com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader value) {
+      if (headersBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureHeadersIsMutable();
+        headers_.add(index, value);
+        onChanged();
+      } else {
+        headersBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <code>repeated .conductor.execution.HttpHeader headers = 6;</code>
+     */
+    public Builder addHeaders(
+        com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader.Builder builderForValue) {
+      if (headersBuilder_ == null) {
+        ensureHeadersIsMutable();
+        headers_.add(builderForValue.build());
+        onChanged();
+      } else {
+        headersBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <code>repeated .conductor.execution.HttpHeader headers = 6;</code>
+     */
+    public Builder addHeaders(
+        int index, com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader.Builder builderForValue) {
+      if (headersBuilder_ == null) {
+        ensureHeadersIsMutable();
+        headers_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        headersBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <code>repeated .conductor.execution.HttpHeader headers = 6;</code>
+     */
+    public Builder addAllHeaders(
+        java.lang.Iterable<? extends com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader> values) {
+      if (headersBuilder_ == null) {
+        ensureHeadersIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, headers_);
+        onChanged();
+      } else {
+        headersBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <code>repeated .conductor.execution.HttpHeader headers = 6;</code>
      */
     public Builder clearHeaders() {
-      headers_ = getDefaultInstance().getHeaders();
-      bitField0_ = (bitField0_ & ~0x00000020);
-      onChanged();
+      if (headersBuilder_ == null) {
+        headers_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000020);
+        onChanged();
+      } else {
+        headersBuilder_.clear();
+      }
       return this;
     }
     /**
-     * <pre>
-     * JSON string; empty if not set on the job definition
-     * </pre>
-     *
-     * <code>string headers = 6;</code>
-     * @param value The bytes for headers to set.
-     * @return This builder for chaining.
+     * <code>repeated .conductor.execution.HttpHeader headers = 6;</code>
      */
-    public Builder setHeadersBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      headers_ = value;
-      bitField0_ |= 0x00000020;
-      onChanged();
+    public Builder removeHeaders(int index) {
+      if (headersBuilder_ == null) {
+        ensureHeadersIsMutable();
+        headers_.remove(index);
+        onChanged();
+      } else {
+        headersBuilder_.remove(index);
+      }
       return this;
+    }
+    /**
+     * <code>repeated .conductor.execution.HttpHeader headers = 6;</code>
+     */
+    public com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader.Builder getHeadersBuilder(
+        int index) {
+      return getHeadersFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <code>repeated .conductor.execution.HttpHeader headers = 6;</code>
+     */
+    public com.github.asadyezdanschool.conductor.grpc.execution.HttpHeaderOrBuilder getHeadersOrBuilder(
+        int index) {
+      if (headersBuilder_ == null) {
+        return headers_.get(index);  } else {
+        return headersBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <code>repeated .conductor.execution.HttpHeader headers = 6;</code>
+     */
+    public java.util.List<? extends com.github.asadyezdanschool.conductor.grpc.execution.HttpHeaderOrBuilder> 
+         getHeadersOrBuilderList() {
+      if (headersBuilder_ != null) {
+        return headersBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(headers_);
+      }
+    }
+    /**
+     * <code>repeated .conductor.execution.HttpHeader headers = 6;</code>
+     */
+    public com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader.Builder addHeadersBuilder() {
+      return getHeadersFieldBuilder().addBuilder(
+          com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader.getDefaultInstance());
+    }
+    /**
+     * <code>repeated .conductor.execution.HttpHeader headers = 6;</code>
+     */
+    public com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader.Builder addHeadersBuilder(
+        int index) {
+      return getHeadersFieldBuilder().addBuilder(
+          index, com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader.getDefaultInstance());
+    }
+    /**
+     * <code>repeated .conductor.execution.HttpHeader headers = 6;</code>
+     */
+    public java.util.List<com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader.Builder> 
+         getHeadersBuilderList() {
+      return getHeadersFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilderV3<
+        com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader, com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader.Builder, com.github.asadyezdanschool.conductor.grpc.execution.HttpHeaderOrBuilder> 
+        getHeadersFieldBuilder() {
+      if (headersBuilder_ == null) {
+        headersBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
+            com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader, com.github.asadyezdanschool.conductor.grpc.execution.HttpHeader.Builder, com.github.asadyezdanschool.conductor.grpc.execution.HttpHeaderOrBuilder>(
+                headers_,
+                ((bitField0_ & 0x00000020) != 0),
+                getParentForChildren(),
+                isClean());
+        headers_ = null;
+      }
+      return headersBuilder_;
     }
 
     private int timeoutSeconds_ ;
