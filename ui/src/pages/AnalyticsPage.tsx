@@ -14,7 +14,6 @@ import {
   YAxis,
 } from 'recharts';
 import { api } from '../api/client';
-import { useAuth } from '../auth/AuthProvider';
 
 function KpiCard({ label, value }: { label: string; value: string | number }) {
   return (
@@ -36,8 +35,6 @@ function barColor(rate: number): string {
 }
 
 export function AnalyticsPage() {
-  const { signOut } = useAuth();
-
   const trendQuery = useQuery({ queryKey: ['analytics', 'run-trend'], queryFn: api.getRunTrend });
   const healthQuery = useQuery({ queryKey: ['analytics', 'job-health'], queryFn: api.getJobHealth });
   const failureQuery = useQuery({ queryKey: ['analytics', 'failure-modes'], queryFn: api.getFailureModes });
@@ -68,9 +65,6 @@ export function AnalyticsPage() {
         <div className="flex items-center gap-4">
           <Link to="/" className="text-sm text-gray-600 hover:text-gray-900">Jobs</Link>
           <span className="text-sm font-medium text-blue-600">Analytics</span>
-          <button onClick={() => signOut()} className="text-sm text-gray-500 hover:text-gray-900">
-            Sign out
-          </button>
         </div>
       </header>
 

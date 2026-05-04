@@ -1,35 +1,16 @@
-import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { PlusIcon, PauseIcon, PlayIcon, ArrowRightIcon } from 'lucide-react';
+import { PauseIcon, PlayIcon, ArrowRightIcon } from 'lucide-react';
 import { api } from '../api/client';
 import { isTerminal } from '../api/status';
 import type { JobSummary } from '../api/types';
 import { JobStatusBadge } from '../components/JobStatusBadge';
 import { CronHelper } from '../components/CronHelper';
-import { JobForm } from '../components/JobForm';
-import { useAuth } from '../auth/AuthProvider';
-
-function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="w-full max-w-xl rounded-lg bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b px-6 py-4">
-          <h2 className="text-base font-semibold text-gray-900">{title}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
-        </div>
-        <div className="px-6 py-4">{children}</div>
-      </div>
-    </div>
-  );
-}
 
 export function JobListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [showCreate, setShowCreate] = useState(false);
-  const { signOut } = useAuth();
 
   const { data: jobs = [], isLoading, error } = useQuery({
     queryKey: ['jobs'],
@@ -62,19 +43,6 @@ export function JobListPage() {
         <h1 className="text-xl font-semibold text-gray-900">Conductor</h1>
         <div className="flex items-center gap-4">
           <Link to="/analytics" className="text-sm text-gray-600 hover:text-gray-900">Analytics</Link>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-1.5 rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
-          >
-            <PlusIcon size={14} />
-            New Job
-          </button>
-          <button
-            onClick={() => signOut()}
-            className="text-sm text-gray-500 hover:text-gray-900"
-          >
-            Sign out
-          </button>
         </div>
       </header>
 
@@ -82,12 +50,6 @@ export function JobListPage() {
         {jobs.length === 0 ? (
           <div className="rounded-lg border border-dashed border-gray-300 bg-white p-12 text-center">
             <p className="text-gray-500">No jobs yet.</p>
-            <button
-              onClick={() => setShowCreate(true)}
-              className="mt-3 text-sm text-blue-600 hover:underline"
-            >
-              Create your first job →
-            </button>
           </div>
         ) : (
           <div className="overflow-hidden rounded-lg border bg-white">
@@ -148,12 +110,6 @@ export function JobListPage() {
           </div>
         )}
       </main>
-
-      {showCreate && (
-        <Modal title="New Job" onClose={() => setShowCreate(false)}>
-          <JobForm onClose={() => setShowCreate(false)} />
-        </Modal>
-      )}
     </div>
   );
 }
