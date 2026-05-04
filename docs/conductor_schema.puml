@@ -61,7 +61,6 @@ entity "job_runs" as jr {
   * queued_at : TIMESTAMPTZ
   started_at : TIMESTAMPTZ
   finished_at : TIMESTAMPTZ
-  duration_ms : INTEGER
   sqs_message_id : TEXT
 }
 
