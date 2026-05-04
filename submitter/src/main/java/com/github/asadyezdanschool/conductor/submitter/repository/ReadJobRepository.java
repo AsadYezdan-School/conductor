@@ -386,7 +386,7 @@ public class ReadJobRepository {
                 "    ROUND(AVG(EXTRACT(EPOCH FROM (jr.finished_at - jr.started_at)) * 1000) FILTER (WHERE jr.status = 'SUCCEEDED'))::bigint " +
                 "      AS actual_avg_duration_ms, " +
                 "    (SELECT COUNT(*) FROM job_dependencies dep " +
-                "     WHERE dep.upstream_family_id = ac.job_family_id) AS downstream_count " +
+                "     WHERE dep.upstream_family_id = jd.job_family_id) AS downstream_count " +
                 "  FROM job_family_alert_configs ac " +
                 "  JOIN job_definitions jd " +
                 "    ON jd.job_family_id = ac.job_family_id " +
