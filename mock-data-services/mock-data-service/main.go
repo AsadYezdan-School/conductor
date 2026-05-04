@@ -38,6 +38,8 @@ func main() {
 	log.Printf("mock-data-service starting — submitter=%s listener=%s numJobs=%d",
 		submitterURL, mockListenerURL, numJobs)
 
+	waitForSubmitter(submitterURL)
+
 	submitted := 0
 	for i := 1; i <= numJobs; i++ {
 		if submitJob(submitterURL, mockListenerURL, i) {
@@ -47,6 +49,27 @@ func main() {
 
 	log.Printf("Startup complete — submitted %d/%d jobs. Sleeping indefinitely.", submitted, numJobs)
 	select {} // block forever so ECS doesn't restart the container
+}
+
+// waitForSubmitter polls GET /jobs until the submitter responds, retrying with
+// linear backoff. The JVM submitter takes several seconds to start up and the
+// docker-compose health check only waits for the container to be running.
+func waitForSubmitter(submitterURL string) {
+	client := &http.Client{Timeout: 2 * time.Second}
+	for attempt := 1; ; attempt++ {
+		resp, err := client.Get(submitterURL + "/jobs")
+		if err == nil {
+			resp.Body.Close()
+			log.Printf("submitter ready after %d probe(s)", attempt)
+			return
+		}
+		delay := time.Duration(attempt) * time.Second
+		if delay > 10*time.Second {
+			delay = 10 * time.Second
+		}
+		log.Printf("submitter not ready (attempt %d): %v — retrying in %s", attempt, err, delay)
+		time.Sleep(delay)
+	}
 }
 
 func submitJob(submitterURL, listenerURL string, index int) bool {
