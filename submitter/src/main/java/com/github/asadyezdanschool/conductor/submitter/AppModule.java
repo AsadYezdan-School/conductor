@@ -2,6 +2,8 @@ package com.github.asadyezdanschool.conductor.submitter;
 
 import com.github.asadyezdanschool.conductor.submitter.exception.ExceptionMappers;
 import com.github.asadyezdanschool.conductor.submitter.grpc.SchedulerGrpcClient;
+import com.github.asadyezdanschool.conductor.submitter.repository.AlertConfigRepository;
+import com.github.asadyezdanschool.conductor.submitter.repository.DependencyRepository;
 import com.github.asadyezdanschool.conductor.submitter.repository.ReadJobRepository;
 import com.github.asadyezdanschool.conductor.submitter.resource.AnalyticsResource;
 import com.github.asadyezdanschool.conductor.submitter.resource.CorsFilter;
@@ -66,8 +68,22 @@ public class AppModule {
 
     @Provides
     @Singleton
-    public JobResource provideJobResource(JobService service, ReadJobRepository readRepo) {
-        return new JobResource(service, readRepo);
+    public AlertConfigRepository provideAlertConfigRepository(DataSource dataSource) {
+        return new AlertConfigRepository(dataSource);
+    }
+
+    @Provides
+    @Singleton
+    public DependencyRepository provideDependencyRepository(DataSource dataSource) {
+        return new DependencyRepository(dataSource);
+    }
+
+    @Provides
+    @Singleton
+    public JobResource provideJobResource(JobService service, ReadJobRepository readRepo,
+                                          AlertConfigRepository alertConfigRepo,
+                                          DependencyRepository depRepo) {
+        return new JobResource(service, readRepo, alertConfigRepo, depRepo);
     }
 
     @Provides

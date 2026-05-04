@@ -97,6 +97,17 @@ public class EnqueueService {
 
     public void enqueueRun(CachedJob job, Instant firedAt, Instant nextScheduledAt) {
         try {
+            if (!repository.areAllUpstreamDepsSucceeded(job.familyId())) {
+                log.info("Skipping enqueue for definition " + job.definitionId()
+                        + ": upstream dependency not met");
+                return;
+            }
+        } catch (java.sql.SQLException e) {
+            log.log(Level.SEVERE, "Dependency check failed for definition " + job.definitionId()
+                    + "; skipping enqueue to be safe", e);
+            return;
+        }
+        try {
             enqueueSemaphore.acquire();
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();

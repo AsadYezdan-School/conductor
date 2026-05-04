@@ -43,6 +43,7 @@ class JobRepositoryTest {
                     .withPassword("conductor");
 
     private JobRepository repository;
+    private DataSource    dataSource;
 
     @BeforeAll
     void startAll() throws Exception {
@@ -52,7 +53,8 @@ class JobRepositoryTest {
         cfg.setJdbcUrl(postgres.getJdbcUrl());
         cfg.setUsername(postgres.getUsername());
         cfg.setPassword(postgres.getPassword());
-        repository = new JobRepository(new HikariDataSource(cfg));
+        dataSource = new HikariDataSource(cfg);
+        repository = new JobRepository(dataSource);
     }
 
     @AfterAll
@@ -186,7 +188,131 @@ class JobRepositoryTest {
         //       assert job_run_events row has correct message + http_status_code + response_body
     }
 
+    // ── areAllUpstreamDepsSucceeded ───────────────────────────────────────────
+
+    @Test
+    void areAllUpstreamDepsSucceeded_noDeps_returnsTrue() throws Exception {
+        UUID downstream = insertJob();
+        assertTrue(repository.areAllUpstreamDepsSucceeded(downstream));
+    }
+
+    @Test
+    void areAllUpstreamDepsSucceeded_upstreamLastRunSucceeded_returnsTrue() throws Exception {
+        UUID upstream   = insertJob();
+        UUID downstream = insertJob();
+        insertDependency(upstream, downstream);
+        UUID runId = insertRun(upstream, "QUEUED");
+        updateRunTerminal(runId, "SUCCEEDED");
+        assertTrue(repository.areAllUpstreamDepsSucceeded(downstream));
+    }
+
+    @Test
+    void areAllUpstreamDepsSucceeded_upstreamLastRunFailed_returnsFalse() throws Exception {
+        UUID upstream   = insertJob();
+        UUID downstream = insertJob();
+        insertDependency(upstream, downstream);
+        UUID runId = insertRun(upstream, "QUEUED");
+        updateRunTerminal(runId, "FAILED");
+        assertFalse(repository.areAllUpstreamDepsSucceeded(downstream));
+    }
+
+    @Test
+    void areAllUpstreamDepsSucceeded_upstreamNeverRan_returnsFalse() throws Exception {
+        UUID upstream   = insertJob();
+        UUID downstream = insertJob();
+        insertDependency(upstream, downstream);
+        // no runs inserted for upstream
+        assertFalse(repository.areAllUpstreamDepsSucceeded(downstream));
+    }
+
+    @Test
+    void areAllUpstreamDepsSucceeded_multipleDepsAllSucceeded_returnsTrue() throws Exception {
+        UUID upA = insertJob();
+        UUID upB = insertJob();
+        UUID downstream = insertJob();
+        insertDependency(upA, downstream);
+        insertDependency(upB, downstream);
+        markSucceededRun(upA);
+        markSucceededRun(upB);
+        assertTrue(repository.areAllUpstreamDepsSucceeded(downstream));
+    }
+
+    @Test
+    void areAllUpstreamDepsSucceeded_multipleDepsOneBlocking_returnsFalse() throws Exception {
+        UUID upA = insertJob();
+        UUID upB = insertJob();
+        UUID downstream = insertJob();
+        insertDependency(upA, downstream);
+        insertDependency(upB, downstream);
+        markSucceededRun(upA);
+        UUID failedRun = insertRun(upB, "QUEUED");
+        updateRunTerminal(failedRun, "FAILED");
+        assertFalse(repository.areAllUpstreamDepsSucceeded(downstream));
+    }
+
     // ── helpers ──────────────────────────────────────────────────────────────
+
+    /** Insert a minimal active job definition and return its job_family_id. */
+    private UUID insertJob() throws Exception {
+        JobRepository.CreateJobParams p = new JobRepository.CreateJobParams(
+                "test-job-" + UUID.randomUUID(), "* * * * *", "HTTP",
+                "http://example.com", "GET", null, null, 30);
+        return repository.createJobDefinition(p).familyId();
+    }
+
+    private void insertDependency(UUID upstreamFamilyId, UUID downstreamFamilyId) throws Exception {
+        try (Connection c = dataSource.getConnection();
+             java.sql.PreparedStatement ps = c.prepareStatement(
+                     "INSERT INTO job_dependencies (upstream_family_id, downstream_family_id) VALUES (?, ?)")) {
+            ps.setObject(1, upstreamFamilyId);
+            ps.setObject(2, downstreamFamilyId);
+            ps.executeUpdate();
+        }
+    }
+
+    /** Insert a job_runs row for the given family with the given status; returns the run id. */
+    private UUID insertRun(UUID familyId, String status) throws Exception {
+        // Resolve the definition id for this family
+        UUID definitionId;
+        try (Connection c = dataSource.getConnection();
+             java.sql.PreparedStatement ps = c.prepareStatement(
+                     "SELECT id FROM job_definitions WHERE job_family_id = ? AND is_latest = TRUE")) {
+            ps.setObject(1, familyId);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                definitionId = (UUID) rs.getObject(1);
+            }
+        }
+        try (Connection c = dataSource.getConnection();
+             java.sql.PreparedStatement ps = c.prepareStatement(
+                     "INSERT INTO job_runs (job_definition_id, job_family_id, status, scheduled_at) " +
+                     "VALUES (?, ?, ?::job_status, NOW()) RETURNING id")) {
+            ps.setObject(1, definitionId);
+            ps.setObject(2, familyId);
+            ps.setString(3, status);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return (UUID) rs.getObject(1);
+            }
+        }
+    }
+
+    private void updateRunTerminal(UUID runId, String status) throws Exception {
+        try (Connection c = dataSource.getConnection();
+             java.sql.PreparedStatement ps = c.prepareStatement(
+                     "UPDATE job_runs SET status = ?::job_status, finished_at = NOW() WHERE id = ?")) {
+            ps.setString(1, status);
+            ps.setObject(2, runId);
+            ps.executeUpdate();
+        }
+    }
+
+    private void markSucceededRun(UUID familyId) throws Exception {
+        UUID runId = insertRun(familyId, "QUEUED");
+        updateRunTerminal(runId, "SUCCEEDED");
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
 
     private void applyMigrations() throws Exception {
         String srcDir = System.getenv("TEST_SRCDIR");
