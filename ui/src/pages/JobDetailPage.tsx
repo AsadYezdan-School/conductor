@@ -2,28 +2,13 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { PencilIcon, PauseIcon, PlayIcon, ChevronLeftIcon } from 'lucide-react';
+import { PauseIcon, PlayIcon, ChevronLeftIcon } from 'lucide-react';
 import { api } from '../api/client';
 import { isTerminal } from '../api/status';
 import type { JobRunSummary } from '../api/types';
 import { JobStatusBadge } from '../components/JobStatusBadge';
 import { CronHelper } from '../components/CronHelper';
 import { RunHistoryTable } from '../components/RunHistoryTable';
-import { JobForm } from '../components/JobForm';
-
-function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="w-full max-w-xl rounded-lg bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b px-6 py-4">
-          <h2 className="text-base font-semibold text-gray-900">{title}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
-        </div>
-        <div className="px-6 py-4">{children}</div>
-      </div>
-    </div>
-  );
-}
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -37,7 +22,6 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
 export function JobDetailPage() {
   const { jobFamilyId } = useParams<{ jobFamilyId: string }>();
   const queryClient = useQueryClient();
-  const [showEdit, setShowEdit] = useState(false);
   const [page, setPage] = useState(0);
   const LIMIT = 20;
 
@@ -91,12 +75,6 @@ export function JobDetailPage() {
             >
               {job.isParked ? <PlayIcon size={13} /> : <PauseIcon size={13} />}
               {job.isParked ? 'Unpark' : 'Park'}
-            </button>
-            <button
-              onClick={() => setShowEdit(true)}
-              className="flex items-center gap-1.5 rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
-            >
-              <PencilIcon size={13} /> Edit
             </button>
           </div>
         </div>
@@ -180,11 +158,6 @@ export function JobDetailPage() {
         </div>
       </main>
 
-      {showEdit && (
-        <Modal title="Edit Job" onClose={() => setShowEdit(false)}>
-          <JobForm existing={job} onClose={() => setShowEdit(false)} />
-        </Modal>
-      )}
     </div>
   );
 }
