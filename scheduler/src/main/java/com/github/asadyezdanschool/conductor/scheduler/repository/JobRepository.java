@@ -478,12 +478,12 @@ public class JobRepository {
     }
 
     /**
-     * Update run status to SUCCEEDED: set status, finished_at, duration_ms.
+     * Update run status to SUCCEEDED: set status, finished_at.
      * Inserts a job_run_events row with http_status_code and response_body. Transactional.
      */
-    public void markSucceeded(UUID jobRunId, long durationMs,
+    public void markSucceeded(UUID jobRunId,
                               int httpStatusCode, String responseBody) throws SQLException {
-        String updateSql = "UPDATE job_runs SET status = 'SUCCEEDED'::job_status, finished_at = NOW(), duration_ms = ? WHERE id = ?";
+        String updateSql = "UPDATE job_runs SET status = 'SUCCEEDED'::job_status, finished_at = NOW() WHERE id = ?";
         String eventSql  = """
                 INSERT INTO job_run_events (job_run_id, status, http_status_code, response_body, source)
                 VALUES (?, 'SUCCEEDED'::job_status, ?, ?, 'worker')
@@ -492,8 +492,7 @@ public class JobRepository {
             c.setAutoCommit(false);
             try {
                 try (PreparedStatement ps = c.prepareStatement(updateSql)) {
-                    ps.setLong(1, durationMs);
-                    ps.setObject(2, jobRunId);
+                    ps.setObject(1, jobRunId);
                     ps.executeUpdate();
                 }
                 try (PreparedStatement ps = c.prepareStatement(eventSql)) {
@@ -513,12 +512,12 @@ public class JobRepository {
     }
 
     /**
-     * Update run status to FAILED: set status, finished_at, duration_ms.
+     * Update run status to FAILED: set status, finished_at.
      * Inserts a job_run_events row with message / http_status_code / response_body. Transactional.
      */
-    public void markFailed(UUID jobRunId, long durationMs,
+    public void markFailed(UUID jobRunId,
                            String message, int httpStatusCode, String responseBody) throws SQLException {
-        String updateSql = "UPDATE job_runs SET status = 'FAILED'::job_status, finished_at = NOW(), duration_ms = ? WHERE id = ?";
+        String updateSql = "UPDATE job_runs SET status = 'FAILED'::job_status, finished_at = NOW() WHERE id = ?";
         String eventSql  = """
                 INSERT INTO job_run_events (job_run_id, status, message, http_status_code, response_body, source)
                 VALUES (?, 'FAILED'::job_status, ?, ?, ?, 'worker')
@@ -527,8 +526,7 @@ public class JobRepository {
             c.setAutoCommit(false);
             try {
                 try (PreparedStatement ps = c.prepareStatement(updateSql)) {
-                    ps.setLong(1, durationMs);
-                    ps.setObject(2, jobRunId);
+                    ps.setObject(1, jobRunId);
                     ps.executeUpdate();
                 }
                 try (PreparedStatement ps = c.prepareStatement(eventSql)) {

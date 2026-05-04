@@ -123,7 +123,8 @@ public class ReadJobRepository {
     public List<JobRunSummary> listRuns(UUID familyId, int limit, int offset) {
         String sql =
                 "SELECT jr.id AS run_id, jr.job_family_id, jr.status::text, jr.attempt_number, " +
-                "  jr.scheduled_at, jr.started_at, jr.finished_at, jr.duration_ms " +
+                "  jr.scheduled_at, jr.started_at, jr.finished_at, " +
+                "  EXTRACT(EPOCH FROM (jr.finished_at - jr.started_at)) * 1000 AS duration_ms " +
                 "FROM job_runs jr " +
                 "WHERE jr.job_family_id = ? " +
                 "ORDER BY jr.scheduled_at DESC " +
@@ -200,7 +201,7 @@ public class ReadJobRepository {
                 "  COUNT(jr.id) FILTER (WHERE jr.status = 'FAILED') AS failed, " +
                 "  ROUND(100.0 * COUNT(jr.id) FILTER (WHERE jr.status = 'SUCCEEDED') " +
                 "    / NULLIF(COUNT(jr.id), 0), 1) AS success_rate_pct, " +
-                "  ROUND(AVG(jr.duration_ms) FILTER (WHERE jr.status = 'SUCCEEDED'))::bigint AS avg_duration_ms " +
+                "  ROUND(AVG(EXTRACT(EPOCH FROM (jr.finished_at - jr.started_at)) * 1000) FILTER (WHERE jr.status = 'SUCCEEDED'))::bigint AS avg_duration_ms " +
                 "FROM job_definitions jd " +
                 "LEFT JOIN job_runs jr ON jr.job_family_id = jd.job_family_id " +
                 "  AND jr.scheduled_at >= NOW() - INTERVAL '7 days' " +
@@ -243,7 +244,7 @@ public class ReadJobRepository {
                 "  COUNT(*) AS total_runs, " +
                 "  COUNT(*) FILTER (WHERE jr.status = 'SUCCEEDED') AS succeeded, " +
                 "  COUNT(*) FILTER (WHERE jr.status = 'FAILED') AS failed, " +
-                "  ROUND(AVG(jr.duration_ms))::bigint AS avg_duration_ms " +
+                "  ROUND(AVG(EXTRACT(EPOCH FROM (jr.finished_at - jr.started_at)) * 1000))::bigint AS avg_duration_ms " +
                 "FROM job_runs jr " +
                 "JOIN job_definitions jd ON jr.job_definition_id = jd.id " +
                 "WHERE jr.scheduled_at >= NOW() - INTERVAL '24 hours' " +

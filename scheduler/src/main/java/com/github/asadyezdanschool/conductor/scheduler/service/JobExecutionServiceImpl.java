@@ -53,14 +53,12 @@ public class JobExecutionServiceImpl implements JobExecutionService {
                 case RUNNING -> repository.markRunning(runId);
                 case SUCCEEDED -> repository.markSucceeded(
                         runId,
-                        request.getDurationMs(),
                         request.getHttpStatusCode(),
                         request.getResponseBody().isEmpty() ? null : request.getResponseBody()
                 );
                 case FAILED -> {
                     repository.markFailed(
                             runId,
-                            request.getDurationMs(),
                             request.getMessage().isEmpty() ? null : request.getMessage(),
                             request.getHttpStatusCode(),
                             request.getResponseBody().isEmpty() ? null : request.getResponseBody()

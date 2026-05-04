@@ -126,7 +126,7 @@ pkgs.mkShell {
 
     local-watch-jobs() {
       watch -n 2 'psql "postgresql://conductor:conductor@localhost:5432/conductor" \
-        -c "SELECT jr.id AS run_id, jd.name, c.url, c.method, jr.status, jr.attempt_number, jr.scheduled_at, jr.duration_ms \
+        -c "SELECT jr.id AS run_id, jd.name, c.url, c.method, jr.status, jr.attempt_number, jr.scheduled_at, EXTRACT(EPOCH FROM (jr.finished_at - jr.started_at)) * 1000 AS duration_ms \
             FROM job_runs jr \
             JOIN job_definitions jd ON jd.id = jr.job_definition_id \
             JOIN job_type_http_configs c ON c.job_definition_id = jd.id \
