@@ -69,6 +69,7 @@ java_test(
         "@maven//:org_junit_jupiter_junit_jupiter_api",
         "@maven//:org_junit_jupiter_junit_jupiter_params",
         "@maven//:org_mockito_mockito_core",
+        "@maven//:software_amazon_awssdk_sqs",
     ],
     runtime_deps = [
         "@maven//:org_junit_jupiter_junit_jupiter_engine",

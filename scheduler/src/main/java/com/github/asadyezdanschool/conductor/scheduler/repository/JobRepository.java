@@ -610,6 +610,44 @@ public class JobRepository {
         }
     }
 
+    // ── Dependency gating ─────────────────────────────────────────────────────
+
+    /**
+     * Returns {@code true} if every upstream dependency of the given downstream job
+     * has a most-recent terminal run (SUCCEEDED/FAILED/CANCELLED) with status SUCCEEDED,
+     * or if the job has no upstream dependencies at all.
+     *
+     * <p>Returns {@code false} if any upstream:
+     * <ul>
+     *   <li>has never produced a terminal run, or</li>
+     *   <li>whose last terminal run was FAILED or CANCELLED.</li>
+     * </ul>
+     */
+    public boolean areAllUpstreamDepsSucceeded(UUID downstreamFamilyId) throws SQLException {
+        String sql = """
+                SELECT COUNT(*) AS blocking_count
+                FROM job_dependencies d
+                LEFT JOIN LATERAL (
+                    SELECT status::text AS last_status
+                    FROM job_runs
+                    WHERE job_family_id = d.upstream_family_id
+                      AND status IN ('SUCCEEDED', 'FAILED', 'CANCELLED')
+                    ORDER BY finished_at DESC NULLS LAST, scheduled_at DESC NULLS LAST
+                    LIMIT 1
+                ) latest ON TRUE
+                WHERE d.downstream_family_id = ?
+                  AND (latest.last_status IS NULL OR latest.last_status != 'SUCCEEDED')
+                """;
+        try (Connection c = dataSource.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setObject(1, downstreamFamilyId);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getLong("blocking_count") == 0;
+            }
+        }
+    }
+
     // ── private helpers ───────────────────────────────────────────────────────
 
     private ActiveJobRow rowFromResultSet(ResultSet rs) throws SQLException {
