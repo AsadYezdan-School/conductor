@@ -44,6 +44,12 @@ export function JobDetailPage() {
     },
   });
 
+  const { data: deps } = useQuery({
+    queryKey: ['deps', jobFamilyId],
+    queryFn: () => api.getJobDependencies(jobFamilyId!),
+    enabled: !!jobFamilyId,
+  });
+
   const parkMutation = useMutation({
     mutationFn: () =>
       job!.isParked ? api.unparkJob(jobFamilyId!) : api.parkJob(jobFamilyId!),
@@ -131,6 +137,54 @@ export function JobDetailPage() {
               }
             />
           )}
+        </div>
+
+        {/* Dependencies card — read-only */}
+        <div className="rounded-lg border bg-white p-6">
+          <h2 className="text-sm font-semibold text-gray-700 mb-4">Dependencies</h2>
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <p className="mb-2 text-xs font-medium uppercase tracking-wider text-gray-500">
+                Depends on
+              </p>
+              {deps?.upstreams.length === 0 && (
+                <p className="text-sm text-gray-400">None</p>
+              )}
+              <ul className="space-y-1">
+                {deps?.upstreams.map((u) => (
+                  <li
+                    key={u.jobFamilyId}
+                    className="rounded border border-gray-100 bg-gray-50 px-3 py-1.5 text-sm"
+                  >
+                    <Link to={`/jobs/${u.jobFamilyId}`} className="text-blue-600 hover:underline">
+                      {u.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <p className="mb-2 text-xs font-medium uppercase tracking-wider text-gray-500">
+                Required by
+              </p>
+              {deps?.downstreams.length === 0 && (
+                <p className="text-sm text-gray-400">None</p>
+              )}
+              <ul className="space-y-1">
+                {deps?.downstreams.map((d) => (
+                  <li
+                    key={d.jobFamilyId}
+                    className="rounded border border-gray-100 bg-gray-50 px-3 py-1.5 text-sm"
+                  >
+                    <Link to={`/jobs/${d.jobFamilyId}`} className="text-blue-600 hover:underline">
+                      {d.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
         </div>
 
         <div className="rounded-lg border bg-white p-6">

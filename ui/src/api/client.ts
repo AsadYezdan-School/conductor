@@ -1,10 +1,16 @@
 import { fetchAuthSession } from 'aws-amplify/auth';
 import type {
+  AddDependencyRequest,
+  AlertBreach,
+  AlertConfigRequest,
+  AlertConfigResponse,
   EditJobRequest,
   FailureModeStat,
   JobCreationRequest,
   JobCreationResponse,
+  JobDependenciesResponse,
   JobDetail,
+  JobFamilyTrendBucket,
   JobHealthStat,
   JobRunSummary,
   JobSummary,
@@ -74,15 +80,45 @@ export const api = {
     return request(`/jobs/${jobFamilyId}/unpark`, { method: 'POST' });
   },
 
-  getJobHealth(): Promise<JobHealthStat[]> {
-    return request('/analytics/job-health');
+  getJobHealth(window: '7d' | '30d' | '90d' = '7d'): Promise<JobHealthStat[]> {
+    return request(`/analytics/job-health?window=${window}`);
   },
 
-  getRunTrend(): Promise<RunTrendBucket[]> {
-    return request('/analytics/run-trend');
+  getRunTrend(window: '24h' | '7d' | '30d' = '24h'): Promise<RunTrendBucket[]> {
+    return request(`/analytics/run-trend?window=${window}`);
   },
 
   getFailureModes(): Promise<FailureModeStat[]> {
     return request('/analytics/failure-modes');
+  },
+
+  getAlerts(): Promise<AlertBreach[]> {
+    return request('/analytics/alerts');
+  },
+
+  getJobFamilyTrend(jobFamilyId: string, window: '7d' | '30d' = '7d'): Promise<JobFamilyTrendBucket[]> {
+    return request(`/analytics/jobs/${jobFamilyId}/trend?window=${window}`);
+  },
+
+  putAlertConfig(jobFamilyId: string, body: AlertConfigRequest): Promise<AlertConfigResponse> {
+    return request(`/jobs/${jobFamilyId}/alert-config`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    });
+  },
+
+  getJobDependencies(jobFamilyId: string): Promise<JobDependenciesResponse> {
+    return request(`/jobs/${jobFamilyId}/dependencies`);
+  },
+
+  addJobDependency(jobFamilyId: string, body: AddDependencyRequest): Promise<JobDependenciesResponse> {
+    return request(`/jobs/${jobFamilyId}/dependencies`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  },
+
+  removeJobDependency(jobFamilyId: string, upstreamFamilyId: string): Promise<void> {
+    return request(`/jobs/${jobFamilyId}/dependencies/${upstreamFamilyId}`, { method: 'DELETE' });
   },
 };
