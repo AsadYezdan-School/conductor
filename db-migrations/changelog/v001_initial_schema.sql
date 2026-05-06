@@ -1,6 +1,4 @@
---liquibase formatted sql
-
---changeset conductor:v001, create definition for http jobs
+--create definition for http jobs
 CREATE TYPE request_type AS ENUM ('GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS','HEAD');
 CREATE TABLE http_jobs (
     id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),

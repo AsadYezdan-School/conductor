@@ -21,10 +21,8 @@ CREATE TYPE job_type AS ENUM (
  'PYTHON'
 );
 
--- Central versioned job definition table.
--- Job definitions are immutable.
+-- Central versioned job definition table. ob definitions are immutable.
 -- All versions of job share the same job_family_id.
--- Only one row per family may have is_latest=TRUE can i make the db enforce this?.
 CREATE TABLE job_definitions (
  id             UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
  job_family_id  UUID          NOT NULL,
@@ -47,9 +45,7 @@ CREATE INDEX idx_job_definitions_scheduler ON job_definitions (is_latest, is_par
 CREATE INDEX idx_job_definitions_family_latest ON job_definitions (job_family_id, is_latest);
 
 
--- HTTP-specific configuration for job definitions where job_type = 'HTTP'.
 -- UNIQUE on job_definition_id enforces the one-to-one relationship at the DB level.
--- Extensibility: future job types will have their own config tables
 CREATE TABLE job_type_http_configs (
  id                 UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
  job_definition_id  UUID          NOT NULL UNIQUE REFERENCES job_definitions (id),
@@ -61,11 +57,9 @@ CREATE TABLE job_type_http_configs (
 );
 
 
--- One row per execution attempt. Created by the scheduler when it enqueues a job.
+
 -- Retry runs reference their origin via parent_run_id (self-referential FK).
--- job_family_id is denormalized here for analytics query performance:
--- strictly it is reachable via job_definition_id -> job_definitions.job_family_id,
--- but storing it directly avoids a join in the most frequent history query pattern.
+-- job_family_id is denormalized here forquery performance, it avoids a join in the most frequent history query pattern.
 CREATE TABLE job_runs (
  id                  UUID              PRIMARY KEY DEFAULT gen_random_uuid(),
  job_definition_id   UUID              NOT NULL REFERENCES job_definitions (id),
@@ -87,8 +81,7 @@ CREATE INDEX idx_job_runs_definition     ON job_runs (job_definition_id);
 CREATE INDEX idx_job_runs_parent         ON job_runs (parent_run_id);
 
 
--- Append-only event log. Every status transition appends a new row; rows are never updated.
--- Provides a full audit trail for debugging and compliance.
+-- Append-only event log. Every status transition appends a new row.
 CREATE TABLE job_run_events (
  id               UUID             PRIMARY KEY DEFAULT gen_random_uuid(),
  job_run_id       UUID             NOT NULL REFERENCES job_runs (id),
@@ -103,9 +96,8 @@ CREATE TABLE job_run_events (
 CREATE INDEX idx_job_run_events_run_time ON job_run_events (job_run_id, occurred_at);
 
 
--- Tracks the last time the scheduler evaluated each active job definition.
+
 -- Prevents duplicate scheduling if the scheduler restarts mid-cycle.
--- Also provides the data needed to display the next scheduled run time in the UI.
 CREATE TABLE job_schedules (
  id                  UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
  job_definition_id   UUID         NOT NULL UNIQUE REFERENCES job_definitions (id),
