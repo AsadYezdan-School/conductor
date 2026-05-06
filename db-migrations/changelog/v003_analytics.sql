@@ -7,7 +7,6 @@ CREATE TABLE job_family_alert_configs (
 
 -- No FK on job_family_id: job_definitions has no UNIQUE constraint on that column.
 -- Orphan rows for deleted job families are harmless.
-
 CREATE TABLE job_dependencies (
     id                   UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     upstream_family_id   UUID        NOT NULL,

@@ -1,7 +1,3 @@
--- Normalize HTTP headers out of JSONB into a relational table to satisfy 1NF.
--- The headers column was a 1NF violation: the worker iterated individual key-value
--- pairs from it rather than treating it as an opaque blob.
-
 CREATE TABLE job_http_config_headers (
     id              UUID    PRIMARY KEY DEFAULT gen_random_uuid(),
     http_config_id  UUID    NOT NULL
