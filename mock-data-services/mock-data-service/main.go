@@ -15,11 +15,17 @@ import (
 )
 
 type jobRequest struct {
-	Name           string `json:"name"`
-	Cron           string `json:"cron"`
-	URL            string `json:"url"`
-	Method         string `json:"method"`
-	TimeoutSeconds int    `json:"timeoutSeconds"`
+	Name           string            `json:"name"`
+	Cron           string            `json:"cron"`
+	URL            string            `json:"url"`
+	Method         string            `json:"method"`
+	TimeoutSeconds int               `json:"timeoutSeconds"`
+	Headers        map[string]string `json:"headers,omitempty"`
+}
+
+type alertConfigRequest struct {
+	MinSuccessRatePct float64 `json:"minSuccessRatePct"`
+	MaxAvgDurationMs  int     `json:"maxAvgDurationMs"`
 }
 
 type jobResponse struct {
@@ -107,8 +113,19 @@ func main() {
 			wired++
 		}
 	}
-	log.Printf("Startup complete — submitted %d/%d jobs, wired %d dependency edges. Sleeping indefinitely.",
-		submitted, numJobs, wired)
+	alerted := 0
+	for i := 1; i <= numJobs; i++ {
+		if familyIDs[i] == "" {
+			continue
+		}
+		if err := putAlertConfig(submitterURL, familyIDs[i], 90.0-float64(i%3)*5, 5000+i*100); err != nil {
+			log.Printf("alert-config job %d failed: %v", i, err)
+		} else {
+			alerted++
+		}
+	}
+	log.Printf("Startup complete — submitted %d/%d jobs, wired %d dependency edges, configured %d alert configs. Sleeping indefinitely.",
+		submitted, numJobs, wired, alerted)
 	// Block until SIGTERM/SIGINT so the container stays running (ECS / Docker).
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGTERM, os.Interrupt)
@@ -144,6 +161,10 @@ func submitJob(submitterURL, listenerURL string, index int) (string, bool) {
 		URL:            listenerURL + "/ping",
 		Method:         "GET",
 		TimeoutSeconds: 30,
+		Headers: map[string]string{
+			"X-Mock-Job-Index": fmt.Sprintf("%d", index),
+			"X-Source":         "conductor-mock",
+		},
 	}
 
 	data, err := json.Marshal(body)
@@ -175,6 +196,26 @@ func submitJob(submitterURL, listenerURL string, index int) (string, bool) {
 	// Small delay between submissions to avoid overwhelming the submitter at startup
 	time.Sleep(100 * time.Millisecond)
 	return result.JobFamilyID, true
+}
+
+func putAlertConfig(submitterURL, familyID string, minSuccessRatePct float64, maxAvgDurationMs int) error {
+	body, _ := json.Marshal(alertConfigRequest{
+		MinSuccessRatePct: minSuccessRatePct,
+		MaxAvgDurationMs:  maxAvgDurationMs,
+	})
+	url := fmt.Sprintf("%s/jobs/%s/alert-config", submitterURL, familyID)
+	req, _ := http.NewRequest(http.MethodPut, url, bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		b, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("status %d: %s", resp.StatusCode, b)
+	}
+	return nil
 }
 
 func addDependency(submitterURL, downstreamFamilyID, upstreamFamilyID string) error {
